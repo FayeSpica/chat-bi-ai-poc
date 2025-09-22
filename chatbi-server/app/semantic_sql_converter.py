@@ -278,7 +278,11 @@ class MySQLSQLGenerator:
     
     def _build_from_clause(self, semantic_sql: SemanticSQL) -> str:
         """构建FROM子句"""
-        return ", ".join(semantic_sql.tables)
+        # 如果有JOIN，只保留第一个表在FROM中，其他表在JOIN中处理
+        if semantic_sql.joins:
+            return semantic_sql.tables[0] if semantic_sql.tables else ""
+        else:
+            return ", ".join(semantic_sql.tables)
     
     def _build_join_clauses(self, semantic_sql: SemanticSQL) -> List[str]:
         """构建JOIN子句"""
@@ -290,7 +294,12 @@ class MySQLSQLGenerator:
             condition = join.get("condition", "")
             
             if table1 and table2 and condition:
-                join_clauses.append(f"{join_type} JOIN {table2} ON {condition}")
+                # 如果table1是FROM子句中的第一个表，直接JOIN table2
+                if table1 == semantic_sql.tables[0]:
+                    join_clauses.append(f"{join_type} JOIN {table2} ON {condition}")
+                else:
+                    # 否则需要先JOIN table1，再JOIN table2
+                    join_clauses.append(f"{join_type} JOIN {table1} ON {condition}")
         
         return join_clauses
     

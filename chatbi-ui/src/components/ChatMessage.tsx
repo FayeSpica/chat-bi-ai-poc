@@ -5,6 +5,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ChatMessage as ChatMessageType, SQLExecutionResult } from '../types';
 import { Line, Column, Bar, Pie } from '@ant-design/plots';
+import ReactMarkdown from 'react-markdown';
 
 const { Text, Paragraph } = Typography;
 
@@ -426,9 +427,35 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     <div className={`message-item ${isUser ? 'message-user' : 'message-assistant'}`}>
       <div className="message-content">
         <div style={{ marginBottom: 8 }}>
-          <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-            {message.content}
-          </Paragraph>
+          {isUser ? (
+            <Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+              {message.content}
+            </Paragraph>
+          ) : (
+            <ReactMarkdown
+              components={{
+                code({ inline, className, children, ...props }) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  if (!inline) {
+                    return (
+                      <SyntaxHighlighter
+                        style={tomorrow}
+                        language={match ? match[1] : undefined}
+                        PreTag="div"
+                        customStyle={{ margin: 0, fontSize: '12px' }}
+                        {...props}
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    );
+                  }
+                  return <code className={className} {...props}>{children}</code>;
+                }
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          )}
         </div>
         
         {!isUser && (
