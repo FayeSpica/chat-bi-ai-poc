@@ -3,6 +3,7 @@ from typing import Dict, Optional
 from app.models import ChatRequest, ChatResponse, SemanticSQL
 from app.semantic_sql_converter import semantic_sql_converter, mysql_sql_generator
 from app.database import db_manager
+import logging
 
 class ChatService:
     """聊天服务"""
@@ -13,6 +14,7 @@ class ChatService:
     def process_chat_message(self, request: ChatRequest) -> ChatResponse:
         """处理聊天消息"""
         try:
+            logger = logging.getLogger("chatbi.service")
             # 获取或创建会话ID
             conversation_id = request.conversation_id or str(uuid.uuid4())
             
@@ -27,10 +29,12 @@ class ChatService:
             })
             
             # 转换自然语言为语义SQL
+            logger.info("Converting NL to semantic SQL: cid=%s", conversation_id)
             semantic_sql = semantic_sql_converter.convert_to_semantic_sql(request.message)
             
             # 生成MySQL SQL语句
             mysql_sql = mysql_sql_generator.generate_mysql_sql(semantic_sql)
+            logger.info("Generated MySQL SQL: cid=%s sql=%s", conversation_id, mysql_sql)
             
             # 生成响应消息
             response_message = self._generate_response_message(
@@ -55,6 +59,7 @@ class ChatService:
             )
             
         except Exception as e:
+            logging.getLogger("chatbi.service").exception("process_chat_message error: %s", e)
             error_message = f"处理消息时发生错误: {str(e)}"
             return ChatResponse(
                 response=error_message,

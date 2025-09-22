@@ -5,8 +5,8 @@ load_dotenv()
 
 class Settings:
     # Ollama配置
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama2")
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://192.168.31.230:11434")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
     
     # 数据库配置
     DB_HOST: str = os.getenv("DB_HOST", "localhost")

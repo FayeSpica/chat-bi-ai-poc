@@ -1,17 +1,17 @@
 import json
 import re
 from typing import Dict, List, Any, Optional
-from langchain.llms import Ollama
-from langchain.schema import HumanMessage, SystemMessage
-from langchain.callbacks.manager import CallbackManagerForLLMRun
+from langchain_ollama import ChatOllama
+from langchain_core.prompts import ChatPromptTemplate
 from app.config import settings
+import logging
 from app.models import SemanticSQL
 
 class SemanticSQLConverter:
     """自然语言转语义SQL转换器"""
     
     def __init__(self):
-        self.llm = Ollama(
+        self.llm = ChatOllama(
             base_url=settings.OLLAMA_BASE_URL,
             model=settings.OLLAMA_MODEL,
             temperature=0.1
@@ -61,9 +61,12 @@ class SemanticSQLConverter:
         """将自然语言转换为语义SQL"""
         try:
             prompt = f"{self.system_prompt}\n\n用户查询：{natural_language}"
-            
-            # 调用LLM生成语义SQL
-            response = self.llm.invoke(prompt)
+            logging.getLogger("chatbi.converter").info(
+                "Invoking ChatOllama: base=%s model=%s",
+                settings.OLLAMA_BASE_URL, settings.OLLAMA_MODEL
+            )
+            msg = self.llm.invoke(prompt)
+            response = getattr(msg, "content", "")
             
             # 提取JSON部分
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
@@ -79,6 +82,7 @@ class SemanticSQLConverter:
             return semantic_sql
             
         except Exception as e:
+            logging.getLogger("chatbi.converter").exception("convert_to_semantic_sql failed: %s", e)
             # 如果转换失败，返回一个默认的语义SQL结构
             return SemanticSQL(
                 tables=[],
@@ -119,6 +123,8 @@ class MySQLSQLGenerator:
     def generate_mysql_sql(self, semantic_sql: SemanticSQL) -> str:
         """将语义SQL转换为MySQL SQL语句"""
         try:
+            if not semantic_sql.tables:
+                return "SELECT 1; -- No tables specified"
             sql_parts = []
             
             # SELECT子句

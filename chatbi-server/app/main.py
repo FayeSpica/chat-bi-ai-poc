@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import Dict, Any
 import uvicorn
+import logging
 
 from app.models import ChatRequest, ChatResponse, SQLExecutionRequest, SQLExecutionResponse
 from app.chat_service import chat_service
@@ -28,9 +29,19 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """应用启动事件"""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s"
+        
+    )
+    logger = logging.getLogger("chatbi")
     print("ChatBI Server 正在启动...")
     print(f"数据库连接: {settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}")
     print(f"Ollama服务: {settings.OLLAMA_BASE_URL}")
+    print(f"Ollama模型: {settings.OLLAMA_MODEL}")
+    logger.info("Server started with DB %s:%s/%s, Ollama %s, Model %s",
+                settings.DB_HOST, settings.DB_PORT, settings.DB_NAME,
+                settings.OLLAMA_BASE_URL, settings.OLLAMA_MODEL)
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -76,9 +87,29 @@ async def legacy_health_check():
 async def chat(request: ChatRequest):
     """聊天接口"""
     try:
+        logger = logging.getLogger("chatbi.api.chat")
+        logger.info("Incoming chat: conversation_id=%s, message=%s",
+                    request.conversation_id, request.message)
+        logger.info("Using Ollama: base=%s, model=%s",
+                    settings.OLLAMA_BASE_URL, settings.OLLAMA_MODEL)
         response = chat_service.process_chat_message(request)
+        try:
+            logger.info("Generated SQL: %s", response.sql_query)
+            if response.semantic_sql:
+                logger.info("Semantic SQL: tables=%s, cols=%s, joins=%s, conds=%s, group_by=%s, order_by=%s, limit=%s",
+                            
+                            response.semantic_sql.tables,
+                            response.semantic_sql.columns,
+                            response.semantic_sql.joins,
+                            response.semantic_sql.conditions,
+                            response.semantic_sql.group_by,
+                            response.semantic_sql.order_by,
+                            response.semantic_sql.limit)
+        except Exception:
+            logger.warning("Failed to log semantic/sql details")
         return response
     except Exception as e:
+        logging.getLogger("chatbi.api.chat").exception("/api/chat failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/execute-sql", response_model=SQLExecutionResponse)
