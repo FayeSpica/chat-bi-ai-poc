@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from typing import Dict, Any
 import uvicorn
 import logging
+import asyncio
 
 from app.models import ChatRequest, ChatResponse, SQLExecutionRequest, SQLExecutionResponse
 from app.chat_service import chat_service
@@ -93,7 +94,13 @@ async def chat(request: ChatRequest):
                     request.conversation_id, request.message)
         logger.info("Using Ollama: base=%s, model=%s",
                     settings.OLLAMA_BASE_URL, settings.OLLAMA_MODEL)
-        response = chat_service.process_chat_message(request)
+        
+        # 使用 asyncio.wait_for 设置超时时间为2分钟
+        response = await asyncio.wait_for(
+            asyncio.to_thread(chat_service.process_chat_message, request),
+            timeout=120.0
+        )
+        
         try:
             logger.info("Generated SQL: %s", response.sql_query)
             if response.semantic_sql:
@@ -109,6 +116,9 @@ async def chat(request: ChatRequest):
         except Exception:
             logger.warning("Failed to log semantic/sql details")
         return response
+    except asyncio.TimeoutError:
+        logger.error("Chat request timed out after 120 seconds")
+        raise HTTPException(status_code=504, detail="请求超时，大模型响应时间过长")
     except Exception as e:
         logging.getLogger("chatbi.api.chat").exception("/api/chat failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

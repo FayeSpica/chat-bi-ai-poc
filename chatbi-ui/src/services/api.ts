@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://localhost:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 120000, // 增加到2分钟，适应大模型请求时间
   headers: {
     'Content-Type': 'application/json',
   },

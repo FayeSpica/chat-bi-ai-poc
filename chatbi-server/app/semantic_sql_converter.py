@@ -15,7 +15,8 @@ class SemanticSQLConverter:
         self.llm = ChatOllama(
             base_url=settings.OLLAMA_BASE_URL,
             model=settings.OLLAMA_MODEL,
-            temperature=0.1
+            temperature=0.1,
+            request_timeout=120  # 设置Ollama请求超时为120秒
         )
         # 保存最近一次与Ollama交互的调试信息
         self.last_debug: Optional[Dict[str, Any]] = None
