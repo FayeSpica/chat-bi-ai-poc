@@ -3,6 +3,7 @@ import re
 from typing import Dict, List, Any, Optional
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
+from app.metadata_builder import schema_metadata_builder
 from app.config import settings
 import logging
 from app.models import SemanticSQL
@@ -55,12 +56,20 @@ class SemanticSQLConverter:
     "limit": null
 }
 
-请严格按照JSON格式输出，不要包含任何其他文字。"""
+请严格按照JSON格式输出，不要包含任何其他文字。
+
+以下是数据库的表结构和字段元数据（用于更好地理解用户意图并选择正确的表与字段）。
+仅将其用于理解上下文，不要直接把元数据内容复制到输出字段中。
+"""
 
     def convert_to_semantic_sql(self, natural_language: str) -> SemanticSQL:
         """将自然语言转换为语义SQL"""
         try:
-            prompt = f"{self.system_prompt}\n\n用户查询：{natural_language}"
+            # 构建数据库元数据片段（简洁压缩）
+            metadata = schema_metadata_builder.build_database_metadata()
+            metadata_summary = self._summarize_metadata_for_prompt(metadata)
+
+            prompt = f"{self.system_prompt}\n\n数据库元数据:\n{metadata_summary}\n\n用户查询：{natural_language}"
             logging.getLogger("chatbi.converter").info(
                 "Invoking ChatOllama: base=%s model=%s",
                 settings.OLLAMA_BASE_URL, settings.OLLAMA_MODEL
@@ -91,6 +100,39 @@ class SemanticSQLConverter:
                 aggregations=[],
                 joins=[]
             )
+
+    def _summarize_metadata_for_prompt(self, metadata: Dict[str, Any]) -> str:
+        """压缩数据库元数据为适合放入Prompt的可读文本，避免过长。"""
+        try:
+            lines = []
+            tables = metadata.get("tables", {})
+            for table_name, t in tables.items():
+                comment = (t.get("comment") or "").strip()
+                if len(comment) > 60:
+                    comment = comment[:57] + "..."
+                lines.append(f"- 表 {table_name}: {comment}")
+                cols = t.get("columns", [])
+                col_parts = []
+                for c in cols[:12]:  # 限制每表输出的字段数量
+                    cname = c.get("name")
+                    ctype = c.get("type")
+                    ccomment = (c.get("comment") or "").strip()
+                    if len(ccomment) > 40:
+                        ccomment = ccomment[:37] + "..."
+                    col_parts.append(f"{cname}({ctype}): {ccomment}")
+                if col_parts:
+                    lines.append("  字段: " + "; ".join(col_parts))
+                # 样例行展示一条
+                samples = t.get("samples", [])
+                if samples:
+                    # 只展示第一行的2-3列样例
+                    first = samples[0]
+                    sample_items = list(first.items())[:3]
+                    sample_str = ", ".join(f"{k}={v}" for k, v in sample_items)
+                    lines.append(f"  样例: {sample_str}")
+            return "\n".join(lines)
+        except Exception:
+            return "(metadata unavailable)"
 
     def validate_semantic_sql(self, semantic_sql: SemanticSQL) -> bool:
         """验证语义SQL的有效性"""
