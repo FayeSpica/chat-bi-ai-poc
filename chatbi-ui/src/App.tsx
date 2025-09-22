@@ -1,0 +1,262 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Layout, message, Spin, Alert, Button } from 'antd';
+import { ReloadOutlined, DatabaseOutlined } from '@ant-design/icons';
+import ChatMessage from './components/ChatMessage';
+import ChatInput from './components/ChatInput';
+import DatabaseSchema from './components/DatabaseSchema';
+import { chatAPI, systemAPI } from './services/api';
+import { ChatMessage as ChatMessageType, SQLExecutionResult } from './types';
+import { v4 as uuidv4 } from 'uuid';
+
+const { Header, Content, Sider } = Layout;
+
+const App: React.FC = () => {
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  const [conversationId, setConversationId] = useState<string>(uuidv4());
+  const [isLoading, setIsLoading] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [systemStatus, setSystemStatus] = useState<'checking' | 'healthy' | 'error'>('checking');
+  const [systemError, setSystemError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 检查系统状态
+  const checkSystemStatus = async () => {
+    setSystemStatus('checking');
+    try {
+      const status = await systemAPI.healthCheck();
+      setSystemStatus('healthy');
+      setSystemError(null);
+    } catch (error: any) {
+      setSystemStatus('error');
+      setSystemError(error.message || '系统连接失败');
+    }
+  };
+
+  useEffect(() => {
+    checkSystemStatus();
+    
+    // 添加欢迎消息
+    const welcomeMessage: ChatMessageType = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: '欢迎使用ChatBI智能聊天系统！\n\n我可以帮您将自然语言转换为SQL查询语句。请告诉我您想要查询什么数据。\n\n例如：\n- 查询所有用户的订单总金额\n- 统计每个月的销售数量\n- 找出购买最多的前10个商品',
+      timestamp: new Date()
+    };
+    setMessages([welcomeMessage]);
+  }, []);
+
+  // 自动滚动到底部
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async (content: string) => {
+    if (systemStatus !== 'healthy') {
+      message.error('系统连接异常，请检查后端服务');
+      return;
+    }
+
+    // 添加用户消息
+    const userMessage: ChatMessageType = {
+      id: uuidv4(),
+      role: 'user',
+      content,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      const response = await chatAPI.sendMessage({
+        message: content,
+        conversation_id: conversationId
+      });
+
+      // 添加助手回复
+      const assistantMessage: ChatMessageType = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: response.response,
+        semantic_sql: response.semantic_sql,
+        sql_query: response.sql_query,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+    } catch (error: any) {
+      message.error('发送消息失败: ' + (error.message || '未知错误'));
+      
+      const errorMessage: ChatMessageType = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: '抱歉，处理您的请求时发生了错误。请稍后重试。',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleExecuteSQL = async (sql: string) => {
+    setIsExecuting(true);
+    try {
+      const result = await chatAPI.executeSQL({
+        sql_query: sql,
+        conversation_id: conversationId
+      });
+
+      // 更新最后一条助手消息的执行结果
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage.role === 'assistant') {
+          lastMessage.execution_result = result;
+        }
+        return newMessages;
+      });
+
+      if (result.success) {
+        message.success(`查询成功，返回 ${result.row_count || 0} 条记录`);
+      } else {
+        message.error('查询失败: ' + result.error);
+      }
+
+    } catch (error: any) {
+      message.error('执行SQL失败: ' + (error.message || '未知错误'));
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const handleClearChat = async () => {
+    try {
+      await chatAPI.clearConversation(conversationId);
+      setMessages([]);
+      setConversationId(uuidv4());
+      
+      // 重新添加欢迎消息
+      const welcomeMessage: ChatMessageType = {
+        id: uuidv4(),
+        role: 'assistant',
+        content: '对话已清空。我可以帮您将自然语言转换为SQL查询语句，请告诉我您想要查询什么数据。',
+        timestamp: new Date()
+      };
+      setMessages([welcomeMessage]);
+      
+      message.success('对话已清空');
+    } catch (error: any) {
+      message.error('清空对话失败: ' + (error.message || '未知错误'));
+    }
+  };
+
+  const handleSelectTable = (tableName: string) => {
+    const suggestionMessage = `我想查看 ${tableName} 表的数据，请帮我生成查询语句`;
+    handleSendMessage(suggestionMessage);
+  };
+
+  const renderSystemStatus = () => {
+    switch (systemStatus) {
+      case 'checking':
+        return (
+          <Alert
+            message="检查系统状态..."
+            type="info"
+            showIcon
+            icon={<Spin size="small" />}
+          />
+        );
+      case 'healthy':
+        return (
+          <Alert
+            message="系统运行正常"
+            type="success"
+            showIcon
+            icon={<DatabaseOutlined />}
+            action={
+              <Button size="small" icon={<ReloadOutlined />} onClick={checkSystemStatus}>
+                刷新
+              </Button>
+            }
+          />
+        );
+      case 'error':
+        return (
+          <Alert
+            message="系统连接异常"
+            description={systemError}
+            type="error"
+            showIcon
+            action={
+              <Button size="small" icon={<ReloadOutlined />} onClick={checkSystemStatus}>
+                重试
+              </Button>
+            }
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Layout className="chat-container">
+      <Header style={{ 
+        background: '#fff', 
+        borderBottom: '1px solid #f0f0f0',
+        padding: '0 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1890ff' }}>
+          ChatBI - 智能聊天BI系统
+        </div>
+        <div style={{ width: '300px' }}>
+          {renderSystemStatus()}
+        </div>
+      </Header>
+
+      <Layout>
+        <Sider width={300} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
+          <DatabaseSchema onSelectTable={handleSelectTable} />
+        </Sider>
+
+        <Layout>
+          <Content style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div className="chat-messages" style={{ flex: 1 }}>
+              {messages.map((msg) => (
+                <ChatMessage
+                  key={msg.id}
+                  message={msg}
+                  onExecuteSQL={handleExecuteSQL}
+                  isExecuting={isExecuting}
+                />
+              ))}
+              
+              {isLoading && (
+                <div className="message-item message-assistant">
+                  <div className="message-content">
+                    <div className="loading-dots">正在思考中</div>
+                  </div>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+
+            <ChatInput
+              onSendMessage={handleSendMessage}
+              onClearChat={handleClearChat}
+              disabled={isLoading || systemStatus !== 'healthy'}
+            />
+          </Content>
+        </Layout>
+      </Layout>
+    </Layout>
+  );
+};
+
+export default App;

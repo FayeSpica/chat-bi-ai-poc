@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: chatbi-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: chatbi
+      MYSQL_PASSWORD: chatbi123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./chatbi-server/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+
+  # Ollama服务
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chatbi-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+
+  # 后端API服务
+  chatbi-server:
+    build:
+      context: ./chatbi-server
+      dockerfile: Dockerfile
+    container_name: chatbi-server
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=password
+      - DB_NAME=test_db
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama2
+    depends_on:
+      - mysql
+      - ollama
+    volumes:
+      - ./chatbi-server:/app
+    restart: unless-stopped
+
+  # 前端UI服务
+  chatbi-ui:
+    build:
+      context: ./chatbi-ui
+      dockerfile: Dockerfile
+    container_name: chatbi-ui
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api
+    depends_on:
+      - chatbi-server
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  ollama_data:

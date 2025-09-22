@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""
+数据库初始化脚本
+创建示例数据表和测试数据
+"""
+
+import pymysql
+from app.config import settings
+
+def create_sample_database():
+    """创建示例数据库和表"""
+    
+    # 连接数据库（不指定数据库名）
+    connection = pymysql.connect(
+        host=settings.DB_HOST,
+        port=settings.DB_PORT,
+        user=settings.DB_USER,
+        password=settings.DB_PASSWORD,
+        charset='utf8mb4'
+    )
+    
+    try:
+        cursor = connection.cursor()
+        
+        # 创建数据库
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {settings.DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+        cursor.execute(f"USE {settings.DB_NAME}")
+        
+        # 创建用户表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(100) UNIQUE NOT NULL,
+                age INT,
+                city VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 创建订单表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS orders (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                product_name VARCHAR(200) NOT NULL,
+                amount DECIMAL(10,2) NOT NULL,
+                quantity INT NOT NULL,
+                order_date DATE NOT NULL,
+                status VARCHAR(20) DEFAULT 'pending',
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
+        
+        # 创建商品表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS products (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                name VARCHAR(200) NOT NULL,
+                category VARCHAR(100) NOT NULL,
+                price DECIMAL(10,2) NOT NULL,
+                stock INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 插入示例用户数据
+        users_data = [
+            ('张三', 'zhangsan@example.com', 25, '北京'),
+            ('李四', 'lisi@example.com', 30, '上海'),
+            ('王五', 'wangwu@example.com', 28, '广州'),
+            ('赵六', 'zhaoliu@example.com', 35, '深圳'),
+            ('钱七', 'qianqi@example.com', 22, '杭州'),
+            ('孙八', 'sunba@example.com', 29, '成都'),
+            ('周九', 'zhoujiu@example.com', 31, '武汉'),
+            ('吴十', 'wushi@example.com', 27, '西安')
+        ]
+        
+        cursor.execute("DELETE FROM users")  # 清空现有数据
+        cursor.executemany(
+            "INSERT INTO users (name, email, age, city) VALUES (%s, %s, %s, %s)",
+            users_data
+        )
+        
+        # 插入示例商品数据
+        products_data = [
+            ('iPhone 15', '手机', 7999.00, 100),
+            ('MacBook Pro', '电脑', 15999.00, 50),
+            ('iPad Air', '平板', 4399.00, 80),
+            ('AirPods Pro', '耳机', 1899.00, 200),
+            ('Apple Watch', '手表', 2999.00, 150),
+            ('Samsung Galaxy', '手机', 5999.00, 120),
+            ('Dell XPS', '电脑', 8999.00, 60),
+            ('Sony WH-1000XM4', '耳机', 2199.00, 90)
+        ]
+        
+        cursor.execute("DELETE FROM products")  # 清空现有数据
+        cursor.executemany(
+            "INSERT INTO products (name, category, price, stock) VALUES (%s, %s, %s, %s)",
+            products_data
+        )
+        
+        # 插入示例订单数据
+        orders_data = [
+            (1, 'iPhone 15', 7999.00, 1, '2024-01-15', 'completed'),
+            (2, 'MacBook Pro', 15999.00, 1, '2024-01-16', 'completed'),
+            (1, 'AirPods Pro', 1899.00, 2, '2024-01-17', 'pending'),
+            (3, 'iPad Air', 4399.00, 1, '2024-01-18', 'completed'),
+            (4, 'Apple Watch', 2999.00, 1, '2024-01-19', 'completed'),
+            (5, 'Samsung Galaxy', 5999.00, 1, '2024-01-20', 'pending'),
+            (2, 'Dell XPS', 8999.00, 1, '2024-01-21', 'completed'),
+            (6, 'Sony WH-1000XM4', 2199.00, 1, '2024-01-22', 'completed'),
+            (7, 'iPhone 15', 7999.00, 1, '2024-01-23', 'completed'),
+            (8, 'MacBook Pro', 15999.00, 1, '2024-01-24', 'pending'),
+            (3, 'iPad Air', 4399.00, 1, '2024-01-25', 'completed'),
+            (4, 'AirPods Pro', 1899.00, 2, '2024-01-26', 'completed'),
+            (5, 'Apple Watch', 2999.00, 1, '2024-01-27', 'pending'),
+            (6, 'Samsung Galaxy', 5999.00, 1, '2024-01-28', 'completed'),
+            (7, 'Dell XPS', 8999.00, 1, '2024-01-29', 'completed'),
+            (8, 'Sony WH-1000XM4', 2199.00, 1, '2024-01-30', 'completed')
+        ]
+        
+        cursor.execute("DELETE FROM orders")  # 清空现有数据
+        cursor.executemany(
+            "INSERT INTO orders (user_id, product_name, amount, quantity, order_date, status) VALUES (%s, %s, %s, %s, %s, %s)",
+            orders_data
+        )
+        
+        connection.commit()
+        print("✅ 数据库初始化完成！")
+        print(f"✅ 数据库: {settings.DB_NAME}")
+        print("✅ 创建的表:")
+        print("  - users (用户表)")
+        print("  - orders (订单表)")
+        print("  - products (商品表)")
+        print("✅ 插入示例数据:")
+        print("  - 8个用户")
+        print("  - 8个商品")
+        print("  - 16个订单")
+        
+    except Exception as e:
+        print(f"❌ 数据库初始化失败: {e}")
+        connection.rollback()
+    finally:
+        connection.close()
+
+if __name__ == "__main__":
+    create_sample_database()
