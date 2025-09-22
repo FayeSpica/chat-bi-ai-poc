@@ -85,6 +85,11 @@ const App: React.FC = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
 
+      // 自动执行生成的 SQL 查询（同时保留手动执行按钮）
+      if (response.sql_query) {
+        handleExecuteSQL(response.sql_query);
+      }
+
     } catch (error: any) {
       message.error('发送消息失败: ' + (error.message || '未知错误'));
       
