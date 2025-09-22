@@ -12,12 +12,14 @@ const { Text, Paragraph } = Typography;
 interface ChatMessageProps {
   message: ChatMessageType;
   onExecuteSQL?: (sql: string) => void;
+  onSendMessage?: (message: string) => void;
   isExecuting?: boolean;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ 
   message, 
-  onExecuteSQL, 
+  onExecuteSQL,
+  onSendMessage,
   isExecuting = false 
 }) => {
   const isUser = message.role === 'user';
@@ -450,6 +452,31 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                     );
                   }
                   return <code className={className} {...props}>{children}</code>;
+                },
+                a({ href, children, ...props }) {
+                  // 处理查询链接点击
+                  if (href === '#query' && onSendMessage) {
+                    return (
+                      <a
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (typeof children === 'string') {
+                            onSendMessage(children);
+                          }
+                        }}
+                        style={{ 
+                          color: '#1890ff', 
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    );
+                  }
+                  return <a href={href} {...props}>{children}</a>;
                 }
               }}
             >

@@ -128,6 +128,19 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
         <Space>
           <DatabaseOutlined />
           <Title level={5} style={{ margin: 0 }}>数据库结构</Title>
+        </Space>
+      }
+      extra={
+        <Space size="small">
+          {activeConnection ? (
+            <Badge status="processing" text={
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                {activeConnection.name}
+              </Text>
+            } />
+          ) : (
+            <Tag color="default" style={{ fontSize: '12px' }}>默认连接</Tag>
+          )}
           <Button 
             size="small" 
             icon={<ReloadOutlined />} 
@@ -137,20 +150,8 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
           </Button>
         </Space>
       }
-      extra={
-        activeConnection ? (
-          <Badge status="processing" text={
-            <Space size="small">
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                {activeConnection.name}
-              </Text>
-            </Space>
-          } />
-        ) : (
-          <Tag color="default" style={{ fontSize: '12px' }}>默认连接</Tag>
-        )
-      }
       style={{ height: '100%' }}
+      bodyStyle={{ padding: '12px' }}
     >
       <Tree
         treeData={renderTreeData()}

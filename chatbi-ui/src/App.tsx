@@ -70,7 +70,14 @@ const App: React.FC = () => {
     const welcomeMessage: ChatMessageType = {
       id: uuidv4(),
       role: 'assistant',
-      content: '欢迎使用ChatBI智能聊天系统！\n\n我可以帮您将自然语言转换为SQL查询语句。请告诉我您想要查询什么数据。\n\n例如：\n- 查询所有用户的订单总金额\n- 统计每个月的销售数量\n- 找出购买最多的前10个商品',
+      content: `欢迎使用ChatBI智能聊天系统！
+
+我可以帮您将自然语言转换为SQL查询语句。请告诉我您想要查询什么数据。
+
+例如：
+- [查询所有用户的订单总金额](#query)
+- [统计每个月的销售数量](#query)
+- [找出购买最多的前10个商品](#query)`,
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
@@ -217,40 +224,48 @@ const App: React.FC = () => {
     switch (systemStatus) {
       case 'checking':
         return (
-          <Alert
-            message="检查系统状态..."
-            type="info"
-            showIcon
-            icon={<Spin size="small" />}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Spin size="small" />
+            <span style={{ fontSize: '12px', color: '#666' }}>检查中...</span>
+          </div>
         );
       case 'healthy':
         return (
-          <Alert
-            message="系统运行正常"
-            type="success"
-            showIcon
-            icon={<DatabaseOutlined />}
-            action={
-              <Button size="small" icon={<ReloadOutlined />} onClick={checkSystemStatus}>
-                刷新
-              </Button>
-            }
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              backgroundColor: '#52c41a' 
+            }}></div>
+            <span style={{ fontSize: '12px', color: '#52c41a' }}>系统正常</span>
+            <Button 
+              size="small" 
+              type="text" 
+              icon={<ReloadOutlined />} 
+              onClick={checkSystemStatus}
+              style={{ padding: '0 4px', minWidth: 'auto' }}
+            />
+          </div>
         );
       case 'error':
         return (
-          <Alert
-            message="系统连接异常"
-            description={systemError}
-            type="error"
-            showIcon
-            action={
-              <Button size="small" icon={<ReloadOutlined />} onClick={checkSystemStatus}>
-                重试
-              </Button>
-            }
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              backgroundColor: '#ff4d4f' 
+            }}></div>
+            <span style={{ fontSize: '12px', color: '#ff4d4f' }}>连接异常</span>
+            <Button 
+              size="small" 
+              type="text" 
+              icon={<ReloadOutlined />} 
+              onClick={checkSystemStatus}
+              style={{ padding: '0 4px', minWidth: 'auto' }}
+            />
+          </div>
         );
       default:
         return null;
@@ -283,14 +298,14 @@ const App: React.FC = () => {
           >
             数据库管理
           </Button>
-          <div style={{ width: '300px' }}>
+          <div style={{ width: '150px' }}>
             {renderSystemStatus()}
           </div>
         </div>
       </Header>
 
       <Layout>
-        <Sider width={300} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
+        <Sider width={400} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
           <DatabaseSchema 
             key={refreshDatabaseSchema}
             onSelectTable={handleSelectTable}
@@ -306,6 +321,7 @@ const App: React.FC = () => {
                   key={msg.id}
                   message={msg}
                   onExecuteSQL={handleExecuteSQL}
+                  onSendMessage={handleSendMessage}
                   isExecuting={isExecuting}
                 />
               ))}
