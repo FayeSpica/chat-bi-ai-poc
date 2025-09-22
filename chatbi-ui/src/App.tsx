@@ -5,7 +5,7 @@ import ChatMessage from './components/ChatMessage';
 import ChatInput from './components/ChatInput';
 import DatabaseSchema from './components/DatabaseSchema';
 import { chatAPI, systemAPI } from './services/api';
-import { ChatMessage as ChatMessageType, SQLExecutionResult } from './types';
+import { ChatMessage as ChatMessageType, ChatRequest, ChatResponse } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const { Header, Content, Sider } = Layout;
@@ -23,7 +23,7 @@ const App: React.FC = () => {
   const checkSystemStatus = async () => {
     setSystemStatus('checking');
     try {
-      const status = await systemAPI.healthCheck();
+      await systemAPI.healthCheck();
       setSystemStatus('healthy');
       setSystemError(null);
     } catch (error: any) {
@@ -64,14 +64,15 @@ const App: React.FC = () => {
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev: ChatMessageType[]) => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
-      const response = await chatAPI.sendMessage({
+      const requestPayload: ChatRequest = {
         message: content,
         conversation_id: conversationId
-      });
+      };
+      const response: ChatResponse = await chatAPI.sendMessage(requestPayload);
 
       // 添加助手回复
       const assistantMessage: ChatMessageType = {
@@ -80,10 +81,15 @@ const App: React.FC = () => {
         content: response.response,
         semantic_sql: response.semantic_sql,
         sql_query: response.sql_query,
-        timestamp: new Date()
+        timestamp: new Date(),
+        debug_info: {
+          request: requestPayload,
+          response,
+          ollama: response.debug_ollama
+        }
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev: ChatMessageType[]) => [...prev, assistantMessage]);
 
       // 自动执行生成的 SQL 查询（同时保留手动执行按钮）
       if (response.sql_query) {
@@ -99,7 +105,7 @@ const App: React.FC = () => {
         content: '抱歉，处理您的请求时发生了错误。请稍后重试。',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev: ChatMessageType[]) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -114,11 +120,15 @@ const App: React.FC = () => {
       });
 
       // 更新最后一条助手消息的执行结果
-      setMessages(prev => {
+      setMessages((prev: ChatMessageType[]) => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage.role === 'assistant') {
           lastMessage.execution_result = result;
+          lastMessage.debug_info = {
+            ...(lastMessage.debug_info || {}),
+            sql_execution: result
+          };
         }
         return newMessages;
       });
@@ -139,7 +149,7 @@ const App: React.FC = () => {
   const handleClearChat = async () => {
     try {
       await chatAPI.clearConversation(conversationId);
-      setMessages([]);
+      setMessages([] as ChatMessageType[]);
       setConversationId(uuidv4());
       
       // 重新添加欢迎消息

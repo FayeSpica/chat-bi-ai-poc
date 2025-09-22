@@ -17,6 +17,8 @@ class SemanticSQLConverter:
             model=settings.OLLAMA_MODEL,
             temperature=0.1
         )
+        # 保存最近一次与Ollama交互的调试信息
+        self.last_debug: Optional[Dict[str, Any]] = None
         
         self.system_prompt = """你是一个专业的SQL语义转换器。你的任务是将用户的自然语言查询转换为结构化的语义SQL JSON格式。
 
@@ -76,6 +78,14 @@ class SemanticSQLConverter:
             )
             msg = self.llm.invoke(prompt)
             response = getattr(msg, "content", "")
+            # 保存调试信息
+            self.last_debug = {
+                "provider": "ollama",
+                "base_url": settings.OLLAMA_BASE_URL,
+                "model": settings.OLLAMA_MODEL,
+                "prompt": prompt,
+                "raw_response": response
+            }
             
             # 提取JSON部分
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
@@ -92,6 +102,13 @@ class SemanticSQLConverter:
             
         except Exception as e:
             logging.getLogger("chatbi.converter").exception("convert_to_semantic_sql failed: %s", e)
+            # 记录失败调试信息
+            self.last_debug = {
+                "provider": "ollama",
+                "base_url": settings.OLLAMA_BASE_URL,
+                "model": settings.OLLAMA_MODEL,
+                "error": str(e)
+            }
             # 如果转换失败，返回一个默认的语义SQL结构
             return SemanticSQL(
                 tables=[],

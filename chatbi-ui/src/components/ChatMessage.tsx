@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Tag, Button, Table, Space, Tooltip, Typography, Segmented, Select, Divider } from 'antd';
+import { Card, Tag, Button, Table, Space, Tooltip, Typography, Segmented, Select, Divider, Collapse } from 'antd';
 import { PlayCircleOutlined, CodeOutlined, DatabaseOutlined } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -342,6 +342,86 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     );
   };
 
+  const renderDebugInfo = () => {
+    if (isUser || !message.debug_info) return null;
+
+    const jsonBlock = (obj: any) => (
+      <SyntaxHighlighter
+        language="json"
+        style={tomorrow}
+        customStyle={{ margin: 0, fontSize: '12px', maxHeight: '300px', overflow: 'auto' }}
+      >
+        {JSON.stringify(obj, null, 2)}
+      </SyntaxHighlighter>
+    );
+
+    return (
+      <Card size="small" style={{ marginTop: 8 }}>
+        <Collapse size="small">
+          <Collapse.Panel header="调试信息" key="debug">
+            <Space direction="vertical" style={{ width: '100%' }} size="small">
+              {message.debug_info.request && (
+                <Card size="small" title="请求参数">
+                  {jsonBlock(message.debug_info.request)}
+                </Card>
+              )}
+              {message.debug_info.response && (
+                <Card size="small" title="模型响应">
+                  {jsonBlock(message.debug_info.response)}
+                </Card>
+              )}
+              {message.debug_info.ollama && (
+                <Card size="small" title="Ollama调试">
+                  <Space direction="vertical" style={{ width: '100%' }} size="small">
+                    <Space size="small" wrap>
+                      <Tag color="geekblue">提供方: {message.debug_info.ollama.provider || 'ollama'}</Tag>
+                      {message.debug_info.ollama.model && (
+                        <Tag color="blue">模型: {message.debug_info.ollama.model}</Tag>
+                      )}
+                    </Space>
+                    {message.debug_info.ollama.base_url && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>服务地址: {message.debug_info.ollama.base_url}</Text>
+                    )}
+                    {message.debug_info.ollama.prompt && (
+                      <Card size="small" type="inner" title="提示词 (Prompt)">
+                        <SyntaxHighlighter
+                          language="markdown"
+                          style={tomorrow}
+                          customStyle={{ margin: 0, fontSize: '12px', maxHeight: '260px', overflow: 'auto' }}
+                        >
+                          {message.debug_info.ollama.prompt}
+                        </SyntaxHighlighter>
+                      </Card>
+                    )}
+                    {message.debug_info.ollama.raw_response && (
+                      <Card size="small" type="inner" title="模型原始回复">
+                        <SyntaxHighlighter
+                          language="markdown"
+                          style={tomorrow}
+                          customStyle={{ margin: 0, fontSize: '12px', maxHeight: '260px', overflow: 'auto' }}
+                        >
+                          {String(message.debug_info.ollama.raw_response)}
+                        </SyntaxHighlighter>
+                      </Card>
+                    )}
+                    {message.debug_info.ollama.error && (
+                      <Text type="danger">错误: {message.debug_info.ollama.error}</Text>
+                    )}
+                  </Space>
+                </Card>
+              )}
+              {'sql_execution' in (message.debug_info || {}) && (
+                <Card size="small" title="SQL执行结果">
+                  {jsonBlock(message.debug_info.sql_execution)}
+                </Card>
+              )}
+            </Space>
+          </Collapse.Panel>
+        </Collapse>
+      </Card>
+    );
+  };
+
   return (
     <div className={`message-item ${isUser ? 'message-user' : 'message-assistant'}`}>
       <div className="message-content">
@@ -356,6 +436,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             {message.semantic_sql && renderSemanticSQL(message.semantic_sql)}
             {message.sql_query && renderSQLQuery(message.sql_query)}
             {message.execution_result && renderExecutionResult(message.execution_result)}
+            {renderDebugInfo()}
           </>
         )}
         

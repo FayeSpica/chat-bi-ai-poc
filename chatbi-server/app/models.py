@@ -24,6 +24,7 @@ class ChatResponse(BaseModel):
     semantic_sql: Optional[SemanticSQL] = None
     conversation_id: str
     execution_result: Optional[Dict[str, Any]] = None
+    debug_ollama: Optional[Dict[str, Any]] = None
 
 class SQLExecutionRequest(BaseModel):
     """SQL执行请求"""

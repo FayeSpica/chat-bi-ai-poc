@@ -19,6 +19,8 @@ class DatabaseManager:
                 password=settings.DB_PASSWORD,
                 database=settings.DB_NAME,
                 charset='utf8mb4',
+                use_unicode=True,
+                init_command='SET NAMES utf8mb4',
                 autocommit=True
             )
         return self.connection

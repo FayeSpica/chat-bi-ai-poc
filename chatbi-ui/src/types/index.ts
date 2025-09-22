@@ -34,6 +34,11 @@ export interface ChatMessage {
   semantic_sql?: SemanticSQL;
   sql_query?: string;
   execution_result?: SQLExecutionResult;
+  debug_info?: {
+    request?: ChatRequest;
+    response?: ChatResponse;
+    sql_execution?: SQLExecutionResult | null;
+  };
 }
 
 export interface ChatRequest {
@@ -47,6 +52,7 @@ export interface ChatResponse {
   semantic_sql?: SemanticSQL;
   conversation_id: string;
   execution_result?: SQLExecutionResult;
+  debug_ollama?: Record<string, any>;
 }
 
 export interface SQLExecutionRequest {

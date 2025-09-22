@@ -1,6 +1,7 @@
 -- 初始化数据库脚本
 -- 这个文件会在MySQL容器启动时自动执行
 
+CREATE DATABASE IF NOT EXISTS test_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE test_db;
 
 -- 创建用户表
@@ -11,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     age INT,
     city VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 创建订单表
 CREATE TABLE IF NOT EXISTS orders (
@@ -23,7 +24,7 @@ CREATE TABLE IF NOT EXISTS orders (
     order_date DATE NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
     FOREIGN KEY (user_id) REFERENCES users(id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 创建商品表
 CREATE TABLE IF NOT EXISTS products (
@@ -33,7 +34,7 @@ CREATE TABLE IF NOT EXISTS products (
     price DECIMAL(10,2) NOT NULL,
     stock INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 插入示例用户数据
 INSERT INTO users (name, email, age, city) VALUES

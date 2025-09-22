@@ -31,6 +31,7 @@ class ChatService:
             # 转换自然语言为语义SQL
             logger.info("Converting NL to semantic SQL: cid=%s", conversation_id)
             semantic_sql = semantic_sql_converter.convert_to_semantic_sql(request.message)
+            debug_ollama = getattr(semantic_sql_converter, 'last_debug', None)
             
             # 生成MySQL SQL语句
             mysql_sql = mysql_sql_generator.generate_mysql_sql(semantic_sql)
@@ -55,7 +56,8 @@ class ChatService:
                 response=response_message,
                 sql_query=mysql_sql,
                 semantic_sql=semantic_sql,
-                conversation_id=conversation_id
+                conversation_id=conversation_id,
+                debug_ollama=debug_ollama
             )
             
         except Exception as e:
