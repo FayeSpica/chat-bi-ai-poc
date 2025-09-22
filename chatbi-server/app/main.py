@@ -9,6 +9,7 @@ from app.models import ChatRequest, ChatResponse, SQLExecutionRequest, SQLExecut
 from app.chat_service import chat_service
 from app.database import db_manager
 from app.config import settings
+from app.metadata_builder import schema_metadata_builder
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -182,6 +183,15 @@ async def get_full_database_schema():
             schema[table] = db_manager.get_table_schema(table)
         
         return {"database_schema": schema}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/metadata")
+async def get_enriched_metadata():
+    """获取增强的数据库元数据（包含表名、字段、字段样例值、表样例行）。"""
+    try:
+        metadata = schema_metadata_builder.build_database_metadata()
+        return {"metadata": metadata}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

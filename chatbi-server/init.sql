@@ -6,35 +6,35 @@ USE test_db;
 
 -- 创建用户表
 CREATE TABLE IF NOT EXISTS users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    age INT,
-    city VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '用户ID，主键',
+    name VARCHAR(100) NOT NULL COMMENT '用户姓名',
+    email VARCHAR(100) UNIQUE NOT NULL COMMENT '邮箱，唯一',
+    age INT COMMENT '年龄',
+    city VARCHAR(50) COMMENT '所在城市',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT='用户信息表';
 
 -- 创建订单表
 CREATE TABLE IF NOT EXISTS orders (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    product_name VARCHAR(200) NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    quantity INT NOT NULL,
-    order_date DATE NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '订单ID，主键',
+    user_id INT NOT NULL COMMENT '下单用户ID，外键 users.id',
+    product_name VARCHAR(200) NOT NULL COMMENT '商品名称',
+    amount DECIMAL(10,2) NOT NULL COMMENT '订单金额',
+    quantity INT NOT NULL COMMENT '数量',
+    order_date DATE NOT NULL COMMENT '下单日期',
+    status VARCHAR(20) DEFAULT 'pending' COMMENT '订单状态',
     FOREIGN KEY (user_id) REFERENCES users(id)
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT='订单明细表';
 
 -- 创建商品表
 CREATE TABLE IF NOT EXISTS products (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(200) NOT NULL,
-    category VARCHAR(100) NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
-    stock INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '商品ID，主键',
+    name VARCHAR(200) NOT NULL COMMENT '商品名称',
+    category VARCHAR(100) NOT NULL COMMENT '商品分类',
+    price DECIMAL(10,2) NOT NULL COMMENT '单价',
+    stock INT NOT NULL COMMENT '库存数量',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT='商品信息表';
 
 -- 插入示例用户数据
 INSERT INTO users (name, email, age, city) VALUES

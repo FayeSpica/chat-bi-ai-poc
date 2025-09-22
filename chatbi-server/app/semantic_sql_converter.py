@@ -121,32 +121,78 @@ class SemanticSQLConverter:
     def _summarize_metadata_for_prompt(self, metadata: Dict[str, Any]) -> str:
         """压缩数据库元数据为适合放入Prompt的可读文本，避免过长。"""
         try:
+            def infer_table_meaning(name: str) -> str:
+                n = name.lower()
+                if "user" in n:
+                    return "用户相关数据"
+                if "order" in n:
+                    return "订单/交易相关数据"
+                if "product" in n or "item" in n:
+                    return "商品/物品相关数据"
+                if "log" in n or "event" in n:
+                    return "日志/事件记录"
+                return "业务相关数据表"
+
+            def infer_column_meaning(name: str) -> str:
+                n = name.lower()
+                if n == "id" or n.endswith("_id"):
+                    return "主键/外键标识"
+                if "name" in n:
+                    return "名称/标题"
+                if "email" in n:
+                    return "电子邮箱"
+                if "city" in n or "address" in n:
+                    return "城市/地址"
+                if "amount" in n or "total" in n or "price" in n or "cost" in n:
+                    return "金额/数值"
+                if "qty" in n or "quantity" in n or "count" in n:
+                    return "数量"
+                if "date" in n or "time" in n or n.endswith("_at"):
+                    return "日期/时间"
+                if "status" in n or "state" in n:
+                    return "状态"
+                if "category" in n or "type" in n:
+                    return "类别/类型"
+                return "字段含义未注明"
+
             lines = []
             tables = metadata.get("tables", {})
             for table_name, t in tables.items():
                 comment = (t.get("comment") or "").strip()
+                if not comment:
+                    comment = infer_table_meaning(table_name)
                 if len(comment) > 60:
                     comment = comment[:57] + "..."
                 lines.append(f"- 表 {table_name}: {comment}")
+
                 cols = t.get("columns", [])
-                col_parts = []
+                col_lines = []
                 for c in cols[:12]:  # 限制每表输出的字段数量
                     cname = c.get("name")
                     ctype = c.get("type")
                     ccomment = (c.get("comment") or "").strip()
+                    if not ccomment:
+                        ccomment = infer_column_meaning(cname or "")
                     if len(ccomment) > 40:
                         ccomment = ccomment[:37] + "..."
-                    col_parts.append(f"{cname}({ctype}): {ccomment}")
-                if col_parts:
-                    lines.append("  字段: " + "; ".join(col_parts))
-                # 样例行展示一条
+                    # 取样例值（如有）
+                    samples = c.get("samples") or []
+                    sample_part = ""
+                    if samples:
+                        preview = ", ".join(str(v) for v in samples[:2])
+                        sample_part = f"，样例: {preview}"
+                    col_lines.append(f"{cname}({ctype}): {ccomment}{sample_part}")
+                if col_lines:
+                    lines.append("  字段: " + "; ".join(col_lines))
+
+                # 表级样例行展示一条
                 samples = t.get("samples", [])
                 if samples:
-                    # 只展示第一行的2-3列样例
                     first = samples[0]
                     sample_items = list(first.items())[:3]
                     sample_str = ", ".join(f"{k}={v}" for k, v in sample_items)
                     lines.append(f"  样例: {sample_str}")
+
             return "\n".join(lines)
         except Exception:
             return "(metadata unavailable)"

@@ -17,7 +17,7 @@ class SchemaMetadataBuilder:
           "tables": {
              "table_name": {
                 "comment": str | None,
-                "columns": [{"name":..., "type":..., "null":..., "key":..., "default":..., "extra":..., "comment":...}],
+                "columns": [{"name":..., "type":..., "null":..., "key":..., "default":..., "extra":..., "comment":..., "samples": [v1, v2, ...]}],
                 "samples": [ {col: val, ...}, ... ]
              },
              ...
@@ -34,10 +34,29 @@ class SchemaMetadataBuilder:
         }
 
         for table in tables:
+            columns = self._get_columns_with_comments(table)
+            sample_rows = self._get_sample_rows(table, self.sample_rows_per_table)
+
+            # 基于样例行，为每个字段提取样例值（去重，保留最多5个）
+            column_samples_map: Dict[str, List[Any]] = {c["name"]: [] for c in columns}
+            for row in sample_rows:
+                for col in column_samples_map.keys():
+                    if col in row:
+                        val = row[col]
+                        samples = column_samples_map[col]
+                        if val not in samples:
+                            samples.append(val)
+                            if len(samples) > 5:
+                                samples.pop(0)
+
+            # 将样例值合入列结构
+            for c in columns:
+                c["samples"] = column_samples_map.get(c["name"], [])
+
             table_meta: Dict[str, Any] = {
                 "comment": self._get_table_comment(table),
-                "columns": self._get_columns_with_comments(table),
-                "samples": self._get_sample_rows(table, self.sample_rows_per_table)
+                "columns": columns,
+                "samples": sample_rows
             }
             metadata["tables"][table] = table_meta
 
