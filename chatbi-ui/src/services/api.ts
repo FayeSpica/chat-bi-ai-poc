@@ -83,7 +83,8 @@ export const databaseAPI = {
 export const systemAPI = {
   // 健康检查
   healthCheck: async () => {
-    const response = await api.get('/health');
+    // 健康检查在后端是根路径 /health，不在 /api 之下
+    const response = await axios.get('http://localhost:8000/health', { timeout: 10000 });
     return response.data;
   },
 };

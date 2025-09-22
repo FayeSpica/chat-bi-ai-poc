@@ -18,23 +18,17 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
 
-  # Ollama服务
-  ollama:
-    image: ollama/ollama:latest
-    container_name: chatbi-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-    restart: unless-stopped
+  # 已在宿主机运行 Ollama（不在 compose 中启动）
 
   # 后端API服务
   chatbi-server:
     build:
       context: ./chatbi-server
       dockerfile: Dockerfile
+      args:
+        - HTTP_PROXY=http://host.docker.internal:7890
+        - HTTPS_PROXY=http://host.docker.internal:7890
+        - NO_PROXY=localhost,127.0.0.1,::1
     container_name: chatbi-server
     ports:
       - "8000:8000"
@@ -44,11 +38,10 @@ services:
       - DB_USER=root
       - DB_PASSWORD=password
       - DB_NAME=test_db
-      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - OLLAMA_MODEL=llama2
     depends_on:
       - mysql
-      - ollama
     volumes:
       - ./chatbi-server:/app
     restart: unless-stopped
@@ -58,6 +51,10 @@ services:
     build:
       context: ./chatbi-ui
       dockerfile: Dockerfile
+      args:
+        - HTTP_PROXY=http://host.docker.internal:7890
+        - HTTPS_PROXY=http://host.docker.internal:7890
+        - NO_PROXY=localhost,127.0.0.1,::1
     container_name: chatbi-ui
     ports:
       - "3000:3000"
@@ -69,4 +66,3 @@ services:
 
 volumes:
   mysql_data:
-  ollama_data:

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Tree, Spin, Alert, Button, Typography, Space, Tag } from 'antd';
 import { DatabaseOutlined, TableOutlined, ReloadOutlined } from '@ant-design/icons';
 import { databaseAPI } from '../services/api';
-import { DatabaseSchema } from '../types';
+import { DatabaseSchema as DatabaseSchemaType } from '../types';
 
 const { Title, Text } = Typography;
 
@@ -11,7 +11,7 @@ interface DatabaseSchemaProps {
 }
 
 const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable }) => {
-  const [schema, setSchema] = useState<DatabaseSchema>({});
+  const [schema, setSchema] = useState<DatabaseSchemaType>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

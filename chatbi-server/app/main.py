@@ -67,6 +67,11 @@ async def health_check():
             }
         )
 
+# 兼容旧路径：/api/health
+@app.get("/api/health")
+async def legacy_health_check():
+    return await health_check()
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """聊天接口"""

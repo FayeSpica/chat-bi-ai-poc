@@ -185,6 +185,12 @@ class MySQLSQLGenerator:
     
     def _build_where_clause(self, semantic_sql: SemanticSQL) -> str:
         """构建WHERE子句"""
+        def sql_quote(val: Any) -> str:
+            # 为字符串值加单引号并转义单引号，其它类型转为字符串
+            if isinstance(val, str):
+                return "'" + val.replace("'", "''") + "'"
+            return str(val)
+
         conditions = []
         for condition in semantic_sql.conditions:
             column = condition.get("column", "")
@@ -195,18 +201,18 @@ class MySQLSQLGenerator:
                 # 处理不同类型的值
                 if operator.upper() == "IN":
                     if isinstance(value, list):
-                        value_str = f"({', '.join([f\"'{v}'\" if isinstance(v, str) else str(v) for v in value])})"
+                        value_str = "(" + ", ".join(sql_quote(v) for v in value) + ")"
                     else:
-                        value_str = f"({value})"
+                        value_str = f"({sql_quote(value)})"
                 elif operator.upper() == "BETWEEN":
                     if isinstance(value, list) and len(value) == 2:
-                        value_str = f"'{value[0]}' AND '{value[1]}'"
+                        value_str = f"{sql_quote(value[0])} AND {sql_quote(value[1])}"
                     else:
-                        value_str = f"'{value}'"
+                        value_str = sql_quote(value)
                 elif operator.upper() == "LIKE":
-                    value_str = f"'{value}'"
+                    value_str = sql_quote(value)
                 else:
-                    value_str = f"'{value}'" if isinstance(value, str) else str(value)
+                    value_str = sql_quote(value)
                 
                 conditions.append(f"{column} {operator} {value_str}")
         
