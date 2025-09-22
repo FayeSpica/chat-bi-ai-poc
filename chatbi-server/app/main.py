@@ -1,16 +1,21 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from typing import Dict, Any
+from typing import Dict, Any, List
 import uvicorn
 import logging
 import asyncio
 
-from app.models import ChatRequest, ChatResponse, SQLExecutionRequest, SQLExecutionResponse
+from app.models import (
+    ChatRequest, ChatResponse, SQLExecutionRequest, SQLExecutionResponse,
+    DatabaseConnection, DatabaseConnectionCreate, DatabaseConnectionUpdate,
+    DatabaseConnectionTest, TableInfo, TableSchema, CommentUpdate
+)
 from app.chat_service import chat_service
 from app.database import db_manager
 from app.config import settings
 from app.metadata_builder import schema_metadata_builder
+from app.database_admin import database_admin_service
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -127,7 +132,14 @@ async def chat(request: ChatRequest):
 async def execute_sql(request: SQLExecutionRequest):
     """执行SQL接口"""
     try:
-        result = db_manager.execute_query(request.sql_query)
+        # 获取当前活动的数据库连接
+        active_connection = database_admin_service.get_active_connection()
+        
+        # 执行SQL查询
+        if active_connection:
+            result = db_manager.execute_query(request.sql_query, active_connection)
+        else:
+            result = db_manager.execute_query(request.sql_query)
         
         # 如果提供了会话ID，更新会话历史
         if request.conversation_id:
@@ -165,7 +177,14 @@ async def clear_conversation(conversation_id: str):
 async def get_tables():
     """获取数据库表列表"""
     try:
-        tables = db_manager.get_all_tables()
+        # 获取当前活动的数据库连接
+        active_connection = database_admin_service.get_active_connection()
+        if not active_connection:
+            # 如果没有活动连接，使用默认连接
+            tables = db_manager.get_all_tables()
+        else:
+            tables = db_manager.get_all_tables(active_connection)
+        
         return {"tables": tables}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -174,7 +193,14 @@ async def get_tables():
 async def get_table_schema(table_name: str):
     """获取表结构"""
     try:
-        schema = db_manager.get_table_schema(table_name)
+        # 获取当前活动的数据库连接
+        active_connection = database_admin_service.get_active_connection()
+        if not active_connection:
+            # 如果没有活动连接，使用默认连接
+            schema = db_manager.get_table_schema(table_name)
+        else:
+            schema = db_manager.get_table_schema(table_name, active_connection)
+        
         return {
             "table_name": table_name,
             "schema": schema
@@ -186,11 +212,19 @@ async def get_table_schema(table_name: str):
 async def get_full_database_schema():
     """获取完整数据库结构"""
     try:
-        tables = db_manager.get_all_tables()
-        schema = {}
-        
-        for table in tables:
-            schema[table] = db_manager.get_table_schema(table)
+        # 获取当前活动的数据库连接
+        active_connection = database_admin_service.get_active_connection()
+        if not active_connection:
+            # 如果没有活动连接，使用默认连接
+            tables = db_manager.get_all_tables()
+            schema = {}
+            for table in tables:
+                schema[table] = db_manager.get_table_schema(table)
+        else:
+            tables = db_manager.get_all_tables(active_connection)
+            schema = {}
+            for table in tables:
+                schema[table] = db_manager.get_table_schema(table, active_connection)
         
         return {"database_schema": schema}
     except Exception as e:
@@ -202,6 +236,151 @@ async def get_enriched_metadata():
     try:
         metadata = schema_metadata_builder.build_database_metadata()
         return {"metadata": metadata}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== 数据库后台管理接口 ====================
+
+@app.get("/api/admin/databases", response_model=List[DatabaseConnection])
+async def get_database_connections():
+    """获取所有数据库连接配置"""
+    try:
+        connections = database_admin_service.get_all_connections()
+        return connections
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/databases/active", response_model=DatabaseConnection)
+async def get_active_database_connection():
+    """获取当前活动的数据库连接"""
+    try:
+        connection = database_admin_service.get_active_connection()
+        if not connection:
+            raise HTTPException(status_code=404, detail="No active database connection found")
+        return connection
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/databases", response_model=DatabaseConnection)
+async def create_database_connection(conn_data: DatabaseConnectionCreate):
+    """创建新的数据库连接配置"""
+    try:
+        connection = database_admin_service.create_connection(conn_data)
+        return connection
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/databases/{connection_id}", response_model=DatabaseConnection)
+async def get_database_connection(connection_id: str):
+    """获取指定的数据库连接配置"""
+    try:
+        connection = database_admin_service.get_connection(connection_id)
+        if not connection:
+            raise HTTPException(status_code=404, detail="Database connection not found")
+        return connection
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/admin/databases/{connection_id}", response_model=DatabaseConnection)
+async def update_database_connection(connection_id: str, update_data: DatabaseConnectionUpdate):
+    """更新数据库连接配置"""
+    try:
+        connection = database_admin_service.update_connection(connection_id, update_data)
+        if not connection:
+            raise HTTPException(status_code=404, detail="Database connection not found")
+        return connection
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/admin/databases/{connection_id}")
+async def delete_database_connection(connection_id: str):
+    """删除数据库连接配置"""
+    try:
+        success = database_admin_service.delete_connection(connection_id)
+        if not success:
+            # 检查连接是否存在
+            connection = database_admin_service.get_connection(connection_id)
+            if not connection:
+                raise HTTPException(status_code=404, detail="Database connection not found")
+            else:
+                raise HTTPException(status_code=400, detail="Cannot delete the last database connection or default connection")
+        return {"message": "Database connection deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/databases/test")
+async def test_database_connection(test_data: DatabaseConnectionTest):
+    """测试数据库连接"""
+    try:
+        result = database_admin_service.test_connection(test_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/admin/databases/{connection_id}/tables", response_model=List[TableInfo])
+async def get_database_tables(connection_id: str):
+    """获取数据库中的所有表"""
+    try:
+        tables = database_admin_service.get_tables(connection_id)
+        return tables
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ConnectionError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取表信息时发生未知错误: {str(e)}")
+
+@app.get("/api/admin/databases/{connection_id}/tables/{table_name}/schema", response_model=TableSchema)
+async def get_table_schema(connection_id: str, table_name: str):
+    """获取表结构"""
+    try:
+        schema = database_admin_service.get_table_schema(connection_id, table_name)
+        return schema
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ConnectionError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取表结构时发生未知错误: {str(e)}")
+
+@app.put("/api/admin/databases/{connection_id}/comments")
+async def update_comment(connection_id: str, comment_update: CommentUpdate):
+    """更新表或字段注释"""
+    try:
+        success = database_admin_service.update_comment(connection_id, comment_update)
+        if success:
+            return {"message": "Comment updated successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to update comment")
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/databases/{connection_id}/execute-sql")
+async def execute_custom_sql(connection_id: str, sql_request: dict):
+    """执行自定义SQL"""
+    try:
+        sql = sql_request.get("sql")
+        if not sql:
+            raise HTTPException(status_code=400, detail="SQL query is required")
+        
+        result = database_admin_service.execute_custom_sql(connection_id, sql)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

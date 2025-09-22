@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Tree, Spin, Alert, Button, Typography, Space, Tag } from 'antd';
-import { DatabaseOutlined, TableOutlined, ReloadOutlined } from '@ant-design/icons';
-import { databaseAPI } from '../services/api';
-import { DatabaseSchema as DatabaseSchemaType } from '../types';
+import { Card, Tree, Spin, Alert, Button, Typography, Space, Tag, Badge } from 'antd';
+import { DatabaseOutlined, TableOutlined, ReloadOutlined, SettingOutlined } from '@ant-design/icons';
+import { databaseAPI, databaseAdminAPI } from '../services/api';
+import { DatabaseSchema as DatabaseSchemaType, DatabaseConnection } from '../types';
 
 const { Title, Text } = Typography;
 
@@ -12,8 +12,19 @@ interface DatabaseSchemaProps {
 
 const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable }) => {
   const [schema, setSchema] = useState<DatabaseSchemaType>({});
+  const [activeConnection, setActiveConnection] = useState<DatabaseConnection | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loadActiveConnection = async () => {
+    try {
+      const connection = await databaseAdminAPI.getActiveConnection();
+      setActiveConnection(connection);
+    } catch (err) {
+      console.warn('Failed to load active connection:', err);
+      setActiveConnection(null);
+    }
+  };
 
   const loadSchema = async () => {
     setLoading(true);
@@ -29,8 +40,13 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable }) => {
     }
   };
 
+  const handleRefresh = async () => {
+    await loadActiveConnection();
+    await loadSchema();
+  };
+
   useEffect(() => {
-    loadSchema();
+    handleRefresh();
   }, []);
 
   const renderTreeData = () => {
@@ -91,7 +107,7 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable }) => {
           type="error"
           showIcon
           action={
-            <Button size="small" icon={<ReloadOutlined />} onClick={loadSchema}>
+            <Button size="small" icon={<ReloadOutlined />} onClick={handleRefresh}>
               重试
             </Button>
           }
@@ -109,11 +125,24 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable }) => {
           <Button 
             size="small" 
             icon={<ReloadOutlined />} 
-            onClick={loadSchema}
+            onClick={handleRefresh}
           >
             刷新
           </Button>
         </Space>
+      }
+      extra={
+        activeConnection ? (
+          <Badge status="processing" text={
+            <Space size="small">
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                {activeConnection.name}
+              </Text>
+            </Space>
+          } />
+        ) : (
+          <Tag color="default" style={{ fontSize: '12px' }}>默认连接</Tag>
+        )
       }
       style={{ height: '100%' }}
     >

@@ -77,3 +77,83 @@ export interface DatabaseSchema {
     Extra: string;
   }>;
 }
+
+// 数据库后台管理相关类型
+export interface DatabaseConnection {
+  id?: string;
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  database: string;
+  charset: string;
+  description?: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DatabaseConnectionCreate {
+  name: string;
+  host: string;
+  port?: number;
+  username: string;
+  password: string;
+  database: string;
+  charset?: string;
+  description?: string;
+}
+
+export interface DatabaseConnectionUpdate {
+  name?: string;
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
+  database?: string;
+  charset?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export interface DatabaseConnectionTest {
+  host: string;
+  port?: number;
+  username: string;
+  password: string;
+  database: string;
+  charset?: string;
+}
+
+export interface TableInfo {
+  table_name: string;
+  table_comment?: string;
+  table_rows?: number;
+  table_size?: string;
+  engine?: string;
+  charset?: string;
+}
+
+export interface ColumnInfo {
+  column_name: string;
+  data_type: string;
+  is_nullable: boolean;
+  column_key?: string;
+  column_default?: string;
+  extra?: string;
+  column_comment?: string;
+  column_order: number;
+}
+
+export interface TableSchema {
+  table_name: string;
+  table_comment?: string;
+  columns: ColumnInfo[];
+}
+
+export interface CommentUpdate {
+  table_name: string;
+  column_name?: string;
+  comment: string;
+}

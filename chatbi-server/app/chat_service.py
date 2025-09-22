@@ -3,6 +3,7 @@ from typing import Dict, Optional
 from app.models import ChatRequest, ChatResponse, SemanticSQL
 from app.semantic_sql_converter import semantic_sql_converter, mysql_sql_generator
 from app.database import db_manager
+from app.database_admin import database_admin_service
 import logging
 
 class ChatService:
@@ -107,8 +108,14 @@ class ChatService:
     def execute_sql_and_update_response(self, conversation_id: str, sql: str) -> Dict:
         """执行SQL并更新响应"""
         try:
+            # 获取当前活动的数据库连接
+            active_connection = database_admin_service.get_active_connection()
+            
             # 执行SQL查询
-            execution_result = db_manager.execute_query(sql)
+            if active_connection:
+                execution_result = db_manager.execute_query(sql, active_connection)
+            else:
+                execution_result = db_manager.execute_query(sql)
             
             # 更新会话历史中的最后一条助手消息
             if (conversation_id in self.conversations and 

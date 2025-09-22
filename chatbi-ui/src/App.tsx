@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout, message, Spin, Alert, Button } from 'antd';
-import { ReloadOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { ReloadOutlined, DatabaseOutlined, SettingOutlined } from '@ant-design/icons';
 import ChatMessage from './components/ChatMessage';
 import ChatInput from './components/ChatInput';
 import DatabaseSchema from './components/DatabaseSchema';
+import DatabaseAdmin from './components/DatabaseAdmin';
 import { chatAPI, systemAPI } from './services/api';
 import { ChatMessage as ChatMessageType, ChatRequest, ChatResponse } from './types';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +18,8 @@ const App: React.FC = () => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [systemStatus, setSystemStatus] = useState<'checking' | 'healthy' | 'error'>('checking');
   const [systemError, setSystemError] = useState<string | null>(null);
+  const [showDatabaseAdmin, setShowDatabaseAdmin] = useState(false);
+  const [refreshDatabaseSchema, setRefreshDatabaseSchema] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 检查系统状态
@@ -172,6 +175,12 @@ const App: React.FC = () => {
     handleSendMessage(suggestionMessage);
   };
 
+  const handleDatabaseAdminClose = () => {
+    setShowDatabaseAdmin(false);
+    // 触发数据库结构刷新
+    setRefreshDatabaseSchema(prev => prev + 1);
+  };
+
   const renderSystemStatus = () => {
     switch (systemStatus) {
       case 'checking':
@@ -229,14 +238,26 @@ const App: React.FC = () => {
         <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1890ff' }}>
           ChatBI - 智能聊天BI系统
         </div>
-        <div style={{ width: '300px' }}>
-          {renderSystemStatus()}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Button 
+            type="primary" 
+            icon={<SettingOutlined />}
+            onClick={() => setShowDatabaseAdmin(true)}
+          >
+            数据库管理
+          </Button>
+          <div style={{ width: '300px' }}>
+            {renderSystemStatus()}
+          </div>
         </div>
       </Header>
 
       <Layout>
         <Sider width={300} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
-          <DatabaseSchema onSelectTable={handleSelectTable} />
+          <DatabaseSchema 
+            key={refreshDatabaseSchema}
+            onSelectTable={handleSelectTable} 
+          />
         </Sider>
 
         <Layout>
@@ -270,6 +291,11 @@ const App: React.FC = () => {
           </Content>
         </Layout>
       </Layout>
+
+      {/* 数据库管理弹窗 */}
+      {showDatabaseAdmin && (
+        <DatabaseAdmin onClose={handleDatabaseAdminClose} />
+      )}
     </Layout>
   );
 };
