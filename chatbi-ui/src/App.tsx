@@ -5,8 +5,9 @@ import ChatMessage from './components/ChatMessage';
 import ChatInput from './components/ChatInput';
 import DatabaseSchema from './components/DatabaseSchema';
 import DatabaseAdmin from './components/DatabaseAdmin';
-import { chatAPI, systemAPI } from './services/api';
-import { ChatMessage as ChatMessageType, ChatRequest, ChatResponse } from './types';
+import DatabaseSelector from './components/DatabaseSelector';
+import { chatAPI, systemAPI, databaseAdminAPI } from './services/api';
+import { ChatMessage as ChatMessageType, ChatRequest, ChatResponse, DatabaseConnection } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const { Header, Content, Sider } = Layout;
@@ -20,6 +21,8 @@ const App: React.FC = () => {
   const [systemError, setSystemError] = useState<string | null>(null);
   const [showDatabaseAdmin, setShowDatabaseAdmin] = useState(false);
   const [refreshDatabaseSchema, setRefreshDatabaseSchema] = useState(0);
+  const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | undefined>();
+  const [availableConnections, setAvailableConnections] = useState<DatabaseConnection[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 检查系统状态
@@ -35,8 +38,33 @@ const App: React.FC = () => {
     }
   };
 
+  // 加载数据库连接列表
+  const loadDatabaseConnections = async () => {
+    try {
+      const connections = await databaseAdminAPI.getConnections();
+      setAvailableConnections(connections);
+      
+      // 设置默认选择的数据库连接（第一个活跃的连接或第一个连接）
+      const activeConnection = connections.find(conn => conn.is_active) || connections[0];
+      if (activeConnection) {
+        setSelectedDatabaseId(activeConnection.id);
+      }
+    } catch (error: any) {
+      console.error('加载数据库连接失败:', error);
+      message.error('加载数据库连接失败: ' + (error.message || '未知错误'));
+    }
+  };
+
+  // 处理数据库选择变化
+  const handleDatabaseChange = (connectionId: string) => {
+    setSelectedDatabaseId(connectionId);
+    // 触发数据库结构刷新
+    setRefreshDatabaseSchema(prev => prev + 1);
+  };
+
   useEffect(() => {
     checkSystemStatus();
+    loadDatabaseConnections();
     
     // 添加欢迎消息
     const welcomeMessage: ChatMessageType = {
@@ -73,7 +101,8 @@ const App: React.FC = () => {
     try {
       const requestPayload: ChatRequest = {
         message: content,
-        conversation_id: conversationId
+        conversation_id: conversationId,
+        database_connection_id: selectedDatabaseId
       };
       const response: ChatResponse = await chatAPI.sendMessage(requestPayload);
 
@@ -88,7 +117,7 @@ const App: React.FC = () => {
         debug_info: {
           request: requestPayload,
           response,
-          ollama: response.debug_ollama
+          sql_execution: null
         }
       };
 
@@ -119,7 +148,8 @@ const App: React.FC = () => {
     try {
       const result = await chatAPI.executeSQL({
         sql_query: sql,
-        conversation_id: conversationId
+        conversation_id: conversationId,
+        database_connection_id: selectedDatabaseId
       });
 
       // 更新最后一条助手消息的执行结果
@@ -177,6 +207,8 @@ const App: React.FC = () => {
 
   const handleDatabaseAdminClose = () => {
     setShowDatabaseAdmin(false);
+    // 重新加载数据库连接列表
+    loadDatabaseConnections();
     // 触发数据库结构刷新
     setRefreshDatabaseSchema(prev => prev + 1);
   };
@@ -239,6 +271,11 @@ const App: React.FC = () => {
           ChatBI - 智能聊天BI系统
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <DatabaseSelector
+            selectedDatabaseId={selectedDatabaseId}
+            onDatabaseChange={handleDatabaseChange}
+            disabled={isLoading || systemStatus !== 'healthy'}
+          />
           <Button 
             type="primary" 
             icon={<SettingOutlined />}
@@ -256,7 +293,8 @@ const App: React.FC = () => {
         <Sider width={300} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
           <DatabaseSchema 
             key={refreshDatabaseSchema}
-            onSelectTable={handleSelectTable} 
+            onSelectTable={handleSelectTable}
+            selectedDatabaseId={selectedDatabaseId}
           />
         </Sider>
 

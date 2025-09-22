@@ -19,6 +19,23 @@ class ChatService:
             # 获取或创建会话ID
             conversation_id = request.conversation_id or str(uuid.uuid4())
             
+            # 获取数据库连接
+            selected_connection = None
+            if request.database_connection_id:
+                selected_connection = database_admin_service.get_connection(request.database_connection_id)
+                if not selected_connection:
+                    logger.warning("Database connection not found: %s", request.database_connection_id)
+                    # 如果指定的连接不存在，使用默认连接
+                    selected_connection = database_admin_service.get_active_connection()
+                else:
+                    logger.info("Using specified database connection: %s (%s)", 
+                               selected_connection.name, selected_connection.id)
+            else:
+                # 使用默认连接
+                selected_connection = database_admin_service.get_active_connection()
+                logger.info("Using default database connection: %s", 
+                           selected_connection.name if selected_connection else "None")
+            
             # 初始化会话历史
             if conversation_id not in self.conversations:
                 self.conversations[conversation_id] = []

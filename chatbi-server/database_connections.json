@@ -12,5 +12,19 @@
     "is_active": true,
     "created_at": "2025-09-22T16:44:44.050284",
     "updated_at": "2025-09-22T16:44:44.050284"
+  },
+  "0e21075e-f8c9-493d-85c2-bba71aba0afc": {
+    "id": "0e21075e-f8c9-493d-85c2-bba71aba0afc",
+    "name": "默认数据库2",
+    "host": "mysql",
+    "port": 3306,
+    "username": "root",
+    "password": "password",
+    "database": "test2_db",
+    "charset": "utf8mb4",
+    "description": "",
+    "is_active": true,
+    "created_at": "2025-09-22T17:25:32.503421",
+    "updated_at": "2025-09-22T17:25:32.503421"
   }
 }

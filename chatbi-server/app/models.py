@@ -16,6 +16,7 @@ class ChatRequest(BaseModel):
     """聊天请求"""
     message: str
     conversation_id: Optional[str] = None
+    database_connection_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     """聊天响应"""
@@ -30,6 +31,7 @@ class SQLExecutionRequest(BaseModel):
     """SQL执行请求"""
     sql_query: str
     conversation_id: Optional[str] = None
+    database_connection_id: Optional[str] = None
 
 class SQLExecutionResponse(BaseModel):
     """SQL执行响应"""

@@ -8,9 +8,10 @@ const { Title, Text } = Typography;
 
 interface DatabaseSchemaProps {
   onSelectTable?: (tableName: string) => void;
+  selectedDatabaseId?: string;
 }
 
-const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable }) => {
+const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selectedDatabaseId }) => {
   const [schema, setSchema] = useState<DatabaseSchemaType>({});
   const [activeConnection, setActiveConnection] = useState<DatabaseConnection | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,10 +19,15 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable }) => {
 
   const loadActiveConnection = async () => {
     try {
-      const connection = await databaseAdminAPI.getActiveConnection();
+      let connection;
+      if (selectedDatabaseId) {
+        connection = await databaseAdminAPI.getConnection(selectedDatabaseId);
+      } else {
+        connection = await databaseAdminAPI.getActiveConnection();
+      }
       setActiveConnection(connection);
     } catch (err) {
-      console.warn('Failed to load active connection:', err);
+      console.warn('Failed to load connection:', err);
       setActiveConnection(null);
     }
   };
@@ -47,7 +53,7 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable }) => {
 
   useEffect(() => {
     handleRefresh();
-  }, []);
+  }, [selectedDatabaseId]);
 
   const renderTreeData = () => {
     const treeData = Object.entries(schema).map(([tableName, columns]) => ({

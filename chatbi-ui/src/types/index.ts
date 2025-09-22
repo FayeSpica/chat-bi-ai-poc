@@ -44,6 +44,7 @@ export interface ChatMessage {
 export interface ChatRequest {
   message: string;
   conversation_id?: string;
+  database_connection_id?: string;
 }
 
 export interface ChatResponse {
@@ -58,6 +59,7 @@ export interface ChatResponse {
 export interface SQLExecutionRequest {
   sql_query: string;
   conversation_id?: string;
+  database_connection_id?: string;
 }
 
 export interface SQLExecutionResult {

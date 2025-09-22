@@ -132,12 +132,21 @@ async def chat(request: ChatRequest):
 async def execute_sql(request: SQLExecutionRequest):
     """执行SQL接口"""
     try:
-        # 获取当前活动的数据库连接
-        active_connection = database_admin_service.get_active_connection()
+        # 获取数据库连接
+        selected_connection = None
+        if request.database_connection_id:
+            selected_connection = database_admin_service.get_connection(request.database_connection_id)
+            if not selected_connection:
+                logger.warning("Database connection not found: %s", request.database_connection_id)
+                # 如果指定的连接不存在，使用默认连接
+                selected_connection = database_admin_service.get_active_connection()
+        else:
+            # 使用默认连接
+            selected_connection = database_admin_service.get_active_connection()
         
         # 执行SQL查询
-        if active_connection:
-            result = db_manager.execute_query(request.sql_query, active_connection)
+        if selected_connection:
+            result = db_manager.execute_query(request.sql_query, selected_connection)
         else:
             result = db_manager.execute_query(request.sql_query)
         
