@@ -1,9 +1,10 @@
-import React from 'react';
-import { Card, Tag, Button, Table, Space, Tooltip, Typography } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, Tag, Button, Table, Space, Tooltip, Typography, Segmented, Select, Divider } from 'antd';
 import { PlayCircleOutlined, CodeOutlined, DatabaseOutlined } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ChatMessage as ChatMessageType, SQLExecutionResult } from '../types';
+import { Line, Column, Bar, Pie } from '@ant-design/plots';
 
 const { Text, Paragraph } = Typography;
 
@@ -145,17 +146,188 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
       );
     }
 
-    const columns = Object.keys(result.data[0]).map(key => ({
-      title: key,
-      dataIndex: key,
-      key,
-      ellipsis: true,
-      render: (text: any) => (
-        <Tooltip title={String(text)}>
-          <Text style={{ fontSize: '12px' }}>{String(text)}</Text>
-        </Tooltip>
-      )
-    }));
+    // 动态可视化视图
+    const allKeys = Object.keys(result.data[0] || {});
+    const numericKeys = allKeys.filter(k => typeof result.data[0][k] === 'number' || !isNaN(Number(result.data[0][k])));
+    const categoryKeys = allKeys.filter(k => !numericKeys.includes(k));
+
+    const [viewMode, setViewMode] = useState<'table' | 'line' | 'column' | 'bar' | 'pie'>('table');
+    const [xField, setXField] = useState<string>(categoryKeys[0] || allKeys[0]);
+    const [yField, setYField] = useState<string>(numericKeys[0] || allKeys[1] || allKeys[0]);
+    const [seriesField, setSeriesField] = useState<string | undefined>(categoryKeys[1]);
+
+    // 当数据或列变化时，自动修正字段选择
+    useEffect(() => {
+      if (!xField || !allKeys.includes(xField)) {
+        setXField(categoryKeys[0] || allKeys[0]);
+      }
+      if (!yField || !allKeys.includes(yField)) {
+        setYField(numericKeys[0] || allKeys.find(k => k !== xField) || allKeys[0]);
+      }
+      if (seriesField && !allKeys.includes(seriesField)) {
+        setSeriesField(categoryKeys.find(k => k !== xField));
+      }
+    }, [JSON.stringify(allKeys)]);
+
+    const tableColumns = useMemo(() => (
+      Object.keys(result.data[0]).map(key => ({
+        title: key,
+        dataIndex: key,
+        key,
+        ellipsis: true,
+        render: (text: any) => (
+          <Tooltip title={String(text)}>
+            <Text style={{ fontSize: '12px' }}>{String(text)}</Text>
+          </Tooltip>
+        )
+      }))
+    ), [JSON.stringify(result.data[0])]);
+
+    const chartData = useMemo(() => (
+      result.data.map(row => ({
+        x: row[xField],
+        y: Number(row[yField]),
+        series: seriesField ? String(row[seriesField]) : undefined
+      }))
+    ), [JSON.stringify(result.data), xField, yField, seriesField]);
+
+    const commonChartHeight = 320;
+
+    const renderChartControls = () => (
+      <Space wrap size="small" style={{ width: '100%', justifyContent: 'space-between' }}>
+        <Segmented
+          options={[
+            { label: '表格', value: 'table' },
+            { label: '折线图', value: 'line' },
+            { label: '柱状图', value: 'column' },
+            { label: '条形图', value: 'bar' },
+            { label: '饼状图', value: 'pie' },
+          ]}
+          value={viewMode}
+          onChange={(v) => setViewMode(v as any)}
+        />
+        {viewMode !== 'table' && (
+          <Space size="small" wrap>
+            <Select
+              size="small"
+              style={{ minWidth: 140 }}
+              value={xField}
+              onChange={setXField}
+              options={allKeys.map(k => ({ label: `X: ${k}`, value: k }))}
+            />
+            {viewMode !== 'pie' && (
+              <Select
+                size="small"
+                style={{ minWidth: 140 }}
+                value={yField}
+                onChange={setYField}
+                options={allKeys.map(k => ({ label: `Y: ${k}`, value: k }))}
+              />
+            )}
+            {['line', 'column', 'bar', 'pie'].includes(viewMode) && (
+              <Select
+                allowClear
+                placeholder="分组(可选)"
+                size="small"
+                style={{ minWidth: 160 }}
+                value={seriesField}
+                onChange={setSeriesField}
+                options={allKeys.map(k => ({ label: `分组: ${k}`, value: k }))}
+              />
+            )}
+          </Space>
+        )}
+      </Space>
+    );
+
+    const renderChart = () => {
+      if (viewMode === 'table') {
+        return (
+          <Table
+            columns={tableColumns}
+            dataSource={result.data}
+            pagination={{
+              pageSize: 10,
+              size: 'small',
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条记录`
+            }}
+            scroll={{ x: 'max-content' }}
+            size="small"
+            className="data-table"
+          />
+        );
+      }
+
+      if (viewMode === 'line') {
+        return (
+          <Line
+            height={commonChartHeight}
+            data={chartData}
+            xField="x"
+            yField="y"
+            seriesField={seriesField ? 'series' : undefined}
+            point={{ size: 3, shape: 'circle' }}
+            tooltip={{
+              fields: ['x', 'y', ...(seriesField ? ['series'] : [])]
+            }}
+          />
+        );
+      }
+
+      if (viewMode === 'column') {
+        return (
+          <Column
+            height={commonChartHeight}
+            data={chartData}
+            xField="x"
+            yField="y"
+            seriesField={seriesField ? 'series' : undefined}
+            tooltip={{
+              fields: ['x', 'y', ...(seriesField ? ['series'] : [])]
+            }}
+          />
+        );
+      }
+
+      if (viewMode === 'bar') {
+        return (
+          <Bar
+            height={commonChartHeight}
+            data={chartData}
+            xField="y"
+            yField="x"
+            seriesField={seriesField ? 'series' : undefined}
+            tooltip={{
+              fields: ['x', 'y', ...(seriesField ? ['series'] : [])]
+            }}
+          />
+        );
+      }
+
+      if (viewMode === 'pie') {
+        const pieData = chartData.map(d => ({ type: String(d.x), value: d.y, series: d.series }));
+        return (
+          <Pie
+            height={commonChartHeight}
+            data={pieData}
+            angleField="value"
+            colorField={seriesField ? 'series' : 'type'}
+            innerRadius={0}
+            label={{
+              text: 'type',
+              style: { fontSize: 12 }
+            }}
+            tooltip={{
+              fields: ['type', 'value', ...(seriesField ? ['series'] : [])]
+            }}
+          />
+        );
+      }
+
+      return null;
+    };
 
     return (
       <Card 
@@ -163,20 +335,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         title={`查询结果 (${result.row_count} 行)`}
         style={{ marginTop: 8 }}
       >
-        <Table
-          columns={columns}
-          dataSource={result.data}
-          pagination={{
-            pageSize: 10,
-            size: 'small',
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条记录`
-          }}
-          scroll={{ x: 'max-content' }}
-          size="small"
-          className="data-table"
-        />
+        {renderChartControls()}
+        <Divider style={{ margin: '8px 0' }} />
+        {renderChart()}
       </Card>
     );
   };
