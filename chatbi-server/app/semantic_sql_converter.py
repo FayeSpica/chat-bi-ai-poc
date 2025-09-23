@@ -6,7 +6,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from app.metadata_builder import schema_metadata_builder
 from app.config import settings
 import logging
-from app.models import SemanticSQL
+from app.models import SemanticSQL, DatabaseConnection
 
 class SemanticSQLConverter:
     """自然语言转语义SQL转换器"""
@@ -65,11 +65,11 @@ class SemanticSQLConverter:
 仅将其用于理解上下文，不要直接把元数据内容复制到输出字段中。
 """
 
-    def convert_to_semantic_sql(self, natural_language: str) -> SemanticSQL:
+    def convert_to_semantic_sql(self, natural_language: str, database_connection: Optional[DatabaseConnection] = None) -> SemanticSQL:
         """将自然语言转换为语义SQL"""
         try:
-            # 构建数据库元数据片段（简洁压缩）
-            metadata = schema_metadata_builder.build_database_metadata()
+            # 构建数据库元数据片段（简洁压缩），传递数据库连接
+            metadata = schema_metadata_builder.build_database_metadata(database_connection)
             metadata_summary = self._summarize_metadata_for_prompt(metadata)
 
             prompt = f"{self.system_prompt}\n\n数据库元数据:\n{metadata_summary}\n\n用户查询：{natural_language}"

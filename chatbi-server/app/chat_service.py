@@ -46,9 +46,9 @@ class ChatService:
                 "content": request.message
             })
             
-            # 转换自然语言为语义SQL
+            # 转换自然语言为语义SQL，传递数据库连接
             logger.info("Converting NL to semantic SQL: cid=%s", conversation_id)
-            semantic_sql = semantic_sql_converter.convert_to_semantic_sql(request.message)
+            semantic_sql = semantic_sql_converter.convert_to_semantic_sql(request.message, selected_connection)
             debug_ollama = getattr(semantic_sql_converter, 'last_debug', None)
             
             # 生成MySQL SQL语句
