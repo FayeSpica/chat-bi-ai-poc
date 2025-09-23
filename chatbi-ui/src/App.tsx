@@ -124,6 +124,7 @@ const App: React.FC = () => {
         debug_info: {
           request: requestPayload,
           response,
+          ollama: response.debug_ollama,
           sql_execution: null
         }
       };
