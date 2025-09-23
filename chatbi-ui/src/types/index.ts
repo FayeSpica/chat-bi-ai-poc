@@ -37,6 +37,7 @@ export interface ChatMessage {
   debug_info?: {
     request?: ChatRequest;
     response?: ChatResponse;
+    ollama?: Record<string, any>;
     sql_execution?: SQLExecutionResult | null;
   };
 }

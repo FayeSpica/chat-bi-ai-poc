@@ -81,9 +81,12 @@ class ChatService:
         except Exception as e:
             logging.getLogger("chatbi.service").exception("process_chat_message error: %s", e)
             error_message = f"处理消息时发生错误: {str(e)}"
+            # 尝试获取调试信息，即使在异常情况下
+            debug_ollama = getattr(semantic_sql_converter, 'last_debug', None)
             return ChatResponse(
                 response=error_message,
-                conversation_id=request.conversation_id or str(uuid.uuid4())
+                conversation_id=request.conversation_id or str(uuid.uuid4()),
+                debug_ollama=debug_ollama
             )
     
     def _generate_response_message(
