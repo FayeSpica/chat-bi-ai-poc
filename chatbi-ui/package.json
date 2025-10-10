@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext js,jsx,ts,tsx --report-unused-disable-directives"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -15,7 +15,7 @@
     "axios": "^1.6.0",
     "antd": "^5.12.0",
     "@ant-design/icons": "^5.2.0",
-    "@ant-design/plots": "^2.2.6",
+    "@ant-design/charts": "^2.0.0",
     "react-markdown": "^9.0.0",
     "react-syntax-highlighter": "^15.5.0",
     "uuid": "^9.0.0",
@@ -26,10 +26,12 @@
     "@types/react-dom": "^18.2.15",
     "@types/uuid": "^9.0.0",
     "@types/react-syntax-highlighter": "^15.5.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
     "@vitejs/plugin-react": "^4.1.1",
     "eslint": "^8.53.0",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.4",
+    "eslint-plugin-react": "^7.33.0",
     "typescript": "^5.2.2",
     "vite": "^4.5.0"
   }

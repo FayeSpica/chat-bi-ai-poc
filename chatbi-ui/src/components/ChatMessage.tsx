@@ -4,7 +4,7 @@ import { PlayCircleOutlined, CodeOutlined, DatabaseOutlined } from '@ant-design/
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ChatMessage as ChatMessageType, SQLExecutionResult } from '../types';
-import { Line, Column, Bar, Pie } from '@ant-design/plots';
+import { Line, Column, Bar, Pie } from '@ant-design/charts';
 import ReactMarkdown from 'react-markdown';
 
 const { Text, Paragraph } = Typography;
