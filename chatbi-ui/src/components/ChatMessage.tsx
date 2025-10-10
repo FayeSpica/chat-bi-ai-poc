@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Tag, Button, Table, Space, Tooltip, Typography, Segmented, Select, Divider, Collapse } from 'antd';
+import { Card, Tag, Button, Table, Space, Tooltip as AntTooltip, Typography, Segmented, Select, Divider, Collapse } from 'antd';
 import { PlayCircleOutlined, CodeOutlined, DatabaseOutlined } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ChatMessage as ChatMessageType, SQLExecutionResult } from '../types';
-import { Line, Column, Bar, Pie } from '@ant-design/charts';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
 const { Text, Paragraph } = Typography;
@@ -179,22 +179,24 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         key,
         ellipsis: true,
         render: (text: any) => (
-          <Tooltip title={String(text)}>
+          <AntTooltip title={String(text)}>
             <Text style={{ fontSize: '12px' }}>{String(text)}</Text>
-          </Tooltip>
+          </AntTooltip>
         )
       }))
     ), [JSON.stringify(result.data[0])]);
 
     const chartData = useMemo(() => (
-      result.data.map(row => ({
-        x: row[xField],
-        y: Number(row[yField]),
-        series: seriesField ? String(row[seriesField]) : undefined
+      result.data.map((row, index) => ({
+        name: String(row[xField]),
+        value: Number(row[yField]),
+        series: seriesField ? String(row[seriesField]) : undefined,
+        index
       }))
     ), [JSON.stringify(result.data), xField, yField, seriesField]);
 
     const commonChartHeight = 320;
+    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7c7c'];
 
     const renderChartControls = () => (
       <Space wrap size="small" style={{ width: '100%', justifyContent: 'space-between' }}>
@@ -265,67 +267,77 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 
       if (viewMode === 'line') {
         return (
-          <Line
-            height={commonChartHeight}
-            data={chartData}
-            xField="x"
-            yField="y"
-            seriesField={seriesField ? 'series' : undefined}
-            point={{ size: 3, shape: 'circle' }}
-            tooltip={{
-              fields: ['x', 'y', ...(seriesField ? ['series'] : [])]
-            }}
-          />
+          <ResponsiveContainer width="100%" height={commonChartHeight}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              {seriesField ? <Legend /> : null}
+              <Line 
+                type="monotone" 
+                dataKey="value" 
+                stroke="#8884d8" 
+                strokeWidth={2}
+                dot={{ r: 3 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         );
       }
 
       if (viewMode === 'column') {
         return (
-          <Column
-            height={commonChartHeight}
-            data={chartData}
-            xField="x"
-            yField="y"
-            seriesField={seriesField ? 'series' : undefined}
-            tooltip={{
-              fields: ['x', 'y', ...(seriesField ? ['series'] : [])]
-            }}
-          />
+          <ResponsiveContainer width="100%" height={commonChartHeight}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              {seriesField ? <Legend /> : null}
+              <Bar dataKey="value" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
         );
       }
 
       if (viewMode === 'bar') {
         return (
-          <Bar
-            height={commonChartHeight}
-            data={chartData}
-            xField="y"
-            yField="x"
-            seriesField={seriesField ? 'series' : undefined}
-            tooltip={{
-              fields: ['x', 'y', ...(seriesField ? ['series'] : [])]
-            }}
-          />
+          <ResponsiveContainer width="100%" height={commonChartHeight}>
+            <BarChart data={chartData} layout="horizontal">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" />
+              <YAxis dataKey="name" type="category" />
+              <Tooltip />
+              {seriesField ? <Legend /> : null}
+              <Bar dataKey="value" fill="#82ca9d" />
+            </BarChart>
+          </ResponsiveContainer>
         );
       }
 
       if (viewMode === 'pie') {
-        const pieData = chartData.map(d => ({ type: String(d.x), value: d.y, series: d.series }));
         return (
-          <Pie
-            height={commonChartHeight}
-            data={pieData}
-            angleField="value"
-            colorField={seriesField ? 'series' : 'type'}
-            innerRadius={0}
-            label={{
-              text: 'type',
-              style: { fontSize: 12 }
-            }}
-            tooltip={{
-              fields: ['type', 'value', ...(seriesField ? ['series'] : [])]
-            }}
-          />
+          <ResponsiveContainer width="100%" height={commonChartHeight}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
         );
       }
 
