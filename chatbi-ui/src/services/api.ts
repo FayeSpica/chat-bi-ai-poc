@@ -78,8 +78,9 @@ export const databaseAPI = {
   },
 
   // 获取完整数据库结构
-  getFullDatabaseSchema: async (): Promise<DatabaseSchema> => {
-    const response = await api.get('/database/schema');
+  getFullDatabaseSchema: async (connectionId?: string): Promise<DatabaseSchema> => {
+    const params = connectionId ? { connectionId } : {};
+    const response = await api.get('/database/schema', { params });
     return response.data.database_schema;
   },
 };

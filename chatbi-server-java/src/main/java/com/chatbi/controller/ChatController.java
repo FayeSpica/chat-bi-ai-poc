@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
@@ -163,13 +164,34 @@ public class ChatController {
     }
 
     @GetMapping("/database/schema")
-    public ResponseEntity<Map<String, Object>> getFullDatabaseSchema() {
+    public ResponseEntity<Map<String, Object>> getFullDatabaseSchema(
+            @RequestParam(required = false) String connectionId) {
         try {
-            List<String> tables = databaseManager.getAllTables();
+            List<String> tables;
             Map<String, Object> schema = new java.util.HashMap<>();
-            for (String table : tables) {
-                schema.put(table, databaseManager.getTableSchema(table));
+            
+            if (connectionId != null && !connectionId.trim().isEmpty()) {
+                // Use specific database connection
+                Optional<DatabaseConnection> connection = databaseAdminService.getConnection(connectionId);
+                if (connection.isEmpty()) {
+                    return ResponseEntity.notFound().build();
+                }
+                tables = databaseAdminService.getTables(connectionId).stream()
+                    .map(TableInfo::getTableName)
+                    .collect(java.util.stream.Collectors.toList());
+                
+                for (String table : tables) {
+                    TableSchema tableSchema = databaseAdminService.getTableSchema(connectionId, table);
+                    schema.put(table, tableSchema.getColumns());
+                }
+            } else {
+                // Use active connection (default behavior)
+                tables = databaseManager.getAllTables();
+                for (String table : tables) {
+                    schema.put(table, databaseManager.getTableSchema(table));
+                }
             }
+            
             return ResponseEntity.ok(Map.of("database_schema", schema));
         } catch (Exception e) {
             logger.error("Error getting full database schema: {}", e.getMessage(), e);
