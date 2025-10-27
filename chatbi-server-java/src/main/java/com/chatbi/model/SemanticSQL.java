@@ -2,10 +2,12 @@ package com.chatbi.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Map;
 
+@Data
 public class SemanticSQL {
     @NotNull
     private List<String> tables;
@@ -41,75 +43,6 @@ public class SemanticSQL {
         this.joins = joins;
         this.orderBy = orderBy;
         this.groupBy = groupBy;
-        this.limit = limit;
-    }
-
-    // Getters and Setters
-    public List<String> getTables() {
-        return tables;
-    }
-
-    public void setTables(List<String> tables) {
-        this.tables = tables;
-    }
-
-    public List<String> getColumns() {
-        return columns;
-    }
-
-    public void setColumns(List<String> columns) {
-        this.columns = columns;
-    }
-
-    public List<Map<String, Object>> getConditions() {
-        return conditions;
-    }
-
-    public void setConditions(List<Map<String, Object>> conditions) {
-        this.conditions = conditions;
-    }
-
-    public List<Map<String, String>> getAggregations() {
-        return aggregations;
-    }
-
-    public void setAggregations(List<Map<String, String>> aggregations) {
-        this.aggregations = aggregations;
-    }
-
-    public List<Map<String, String>> getJoins() {
-        return joins;
-    }
-
-    public void setJoins(List<Map<String, String>> joins) {
-        this.joins = joins;
-    }
-
-    @JsonProperty("order_by")
-    public List<Map<String, String>> getOrderBy() {
-        return orderBy;
-    }
-
-    @JsonProperty("order_by")
-    public void setOrderBy(List<Map<String, String>> orderBy) {
-        this.orderBy = orderBy;
-    }
-
-    @JsonProperty("group_by")
-    public List<String> getGroupBy() {
-        return groupBy;
-    }
-
-    @JsonProperty("group_by")
-    public void setGroupBy(List<String> groupBy) {
-        this.groupBy = groupBy;
-    }
-
-    public Integer getLimit() {
-        return limit;
-    }
-
-    public void setLimit(Integer limit) {
         this.limit = limit;
     }
 }

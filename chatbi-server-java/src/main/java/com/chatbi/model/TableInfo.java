@@ -1,7 +1,9 @@
 package com.chatbi.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
+@Data
 public class TableInfo {
     @JsonProperty("table_name")
     private String tableName;
@@ -28,55 +30,6 @@ public class TableInfo {
         this.tableRows = tableRows;
         this.tableSize = tableSize;
         this.engine = engine;
-        this.charset = charset;
-    }
-
-    // Getters and Setters
-    public String getTableName() {
-        return tableName;
-    }
-
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
-
-    public String getTableComment() {
-        return tableComment;
-    }
-
-    public void setTableComment(String tableComment) {
-        this.tableComment = tableComment;
-    }
-
-    public Integer getTableRows() {
-        return tableRows;
-    }
-
-    public void setTableRows(Integer tableRows) {
-        this.tableRows = tableRows;
-    }
-
-    public String getTableSize() {
-        return tableSize;
-    }
-
-    public void setTableSize(String tableSize) {
-        this.tableSize = tableSize;
-    }
-
-    public String getEngine() {
-        return engine;
-    }
-
-    public void setEngine(String engine) {
-        this.engine = engine;
-    }
-
-    public String getCharset() {
-        return charset;
-    }
-
-    public void setCharset(String charset) {
         this.charset = charset;
     }
 }

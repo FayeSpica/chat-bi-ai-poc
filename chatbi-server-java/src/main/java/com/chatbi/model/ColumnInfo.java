@@ -1,7 +1,9 @@
 package com.chatbi.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 
+@Data
 public class ColumnInfo {
     @JsonProperty("column_name")
     private String columnName;
@@ -39,71 +41,6 @@ public class ColumnInfo {
         this.columnDefault = columnDefault;
         this.extra = extra;
         this.columnComment = columnComment;
-        this.columnOrder = columnOrder;
-    }
-
-    // Getters and Setters
-    public String getColumnName() {
-        return columnName;
-    }
-
-    public void setColumnName(String columnName) {
-        this.columnName = columnName;
-    }
-
-    public String getDataType() {
-        return dataType;
-    }
-
-    public void setDataType(String dataType) {
-        this.dataType = dataType;
-    }
-
-    public Boolean getIsNullable() {
-        return isNullable;
-    }
-
-    public void setIsNullable(Boolean isNullable) {
-        this.isNullable = isNullable;
-    }
-
-    public String getColumnKey() {
-        return columnKey;
-    }
-
-    public void setColumnKey(String columnKey) {
-        this.columnKey = columnKey;
-    }
-
-    public String getColumnDefault() {
-        return columnDefault;
-    }
-
-    public void setColumnDefault(String columnDefault) {
-        this.columnDefault = columnDefault;
-    }
-
-    public String getExtra() {
-        return extra;
-    }
-
-    public void setExtra(String extra) {
-        this.extra = extra;
-    }
-
-    public String getColumnComment() {
-        return columnComment;
-    }
-
-    public void setColumnComment(String columnComment) {
-        this.columnComment = columnComment;
-    }
-
-    public Integer getColumnOrder() {
-        return columnOrder;
-    }
-
-    public void setColumnOrder(Integer columnOrder) {
         this.columnOrder = columnOrder;
     }
 }
