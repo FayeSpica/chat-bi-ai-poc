@@ -40,6 +40,7 @@ yarn-error.log*
 .pnpm-debug.log*
 .npm
 .yarn-integrity
+package-lock.json
 
 # Build outputs
 dist/
