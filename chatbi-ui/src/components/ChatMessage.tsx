@@ -128,7 +128,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     );
   };
 
-  const renderExecutionResult = (result: SQLExecutionResult) => {
+  // 提取为独立的React组件
+  const ExecutionResult: React.FC<{ result: SQLExecutionResult }> = ({ result }) => {
     if (!result) return null;
 
     if (!result.success) {
@@ -489,7 +490,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           <>
             {message.semantic_sql && renderSemanticSQL(message.semantic_sql)}
             {message.sql_query && renderSQLQuery(message.sql_query)}
-            {message.execution_result && renderExecutionResult(message.execution_result)}
+            {message.execution_result && <ExecutionResult result={message.execution_result} />}
             {renderDebugInfo()}
           </>
         )}
