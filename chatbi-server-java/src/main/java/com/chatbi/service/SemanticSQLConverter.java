@@ -1,6 +1,6 @@
 package com.chatbi.service;
 
-import com.chatbi.config.ChatbiProperties;
+import org.springframework.beans.factory.annotation.Value;
 import com.chatbi.model.DatabaseConnection;
 import com.chatbi.model.SemanticSQL;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -23,8 +23,14 @@ public class SemanticSQLConverter {
     private static final Logger logger = LoggerFactory.getLogger(SemanticSQLConverter.class);
     private static final Pattern JSON_PATTERN = Pattern.compile("\\{.*\\}", Pattern.DOTALL);
     
-    @Autowired
-    private ChatbiProperties properties;
+    @Value("${langchain4j.ollama.base-url}")
+    private String ollamaBaseUrl;
+    
+    @Value("${langchain4j.ollama.model-name}")
+    private String ollamaModelName;
+    
+    @Value("${langchain4j.ollama.timeout}")
+    private String ollamaTimeout;
     
     @Autowired
     private SchemaMetadataBuilder metadataBuilder;
@@ -46,15 +52,15 @@ public class SemanticSQLConverter {
             String systemPrompt = buildSystemPrompt();
             String prompt = systemPrompt + "\n\n数据库元数据:\n" + metadataSummary + "\n\n用户查询：" + naturalLanguage;
             
-            logger.info("Invoking Ollama: base={} model={}", properties.getOllama().getBaseUrl(), properties.getOllama().getModel());
+            logger.info("Invoking Ollama: base={} model={}", ollamaBaseUrl, ollamaModelName);
             
             String response = llm.generate(prompt);
             
             // Save debug information
             lastDebug = Map.of(
                 "provider", "ollama",
-                "base_url", properties.getOllama().getBaseUrl(),
-                "model", properties.getOllama().getModel(),
+                "base_url", ollamaBaseUrl,
+                "model", ollamaModelName,
                 "prompt", prompt,
                 "raw_response", response
             );
@@ -76,8 +82,8 @@ public class SemanticSQLConverter {
             // Save error debug information
             lastDebug = Map.of(
                 "provider", "ollama",
-                "base_url", properties.getOllama().getBaseUrl(),
-                "model", properties.getOllama().getModel(),
+                "base_url", ollamaBaseUrl,
+                "model", ollamaModelName,
                 "error", e.getMessage()
             );
             
@@ -101,11 +107,21 @@ public class SemanticSQLConverter {
 
     private void initializeLlm() {
         if (llm == null) {
+            // Parse timeout string (e.g., "120s" -> 120 seconds)
+            long timeoutSeconds = 120; // default
+            if (ollamaTimeout != null && ollamaTimeout.endsWith("s")) {
+                try {
+                    timeoutSeconds = Long.parseLong(ollamaTimeout.substring(0, ollamaTimeout.length() - 1));
+                } catch (NumberFormatException e) {
+                    logger.warn("Invalid timeout format: {}, using default 120s", ollamaTimeout);
+                }
+            }
+            
             llm = OllamaChatModel.builder()
-                .baseUrl(properties.getOllama().getBaseUrl())
-                .modelName(properties.getOllama().getModel())
+                .baseUrl(ollamaBaseUrl)
+                .modelName(ollamaModelName)
                 .temperature(0.1)
-                .timeout(Duration.ofSeconds(properties.getOllama().getTimeout()))
+                .timeout(Duration.ofSeconds(timeoutSeconds))
                 .build();
         }
     }
