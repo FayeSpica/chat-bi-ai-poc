@@ -56,7 +56,7 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
   }, [selectedDatabaseId]);
 
   const renderTreeData = () => {
-    const treeData = Object.entries(schema).map(([tableName, columns]) => ({
+    const treeData = Object.entries(schema).map(([tableName, columns], tableIndex) => ({
       title: (
         <Space>
           <TableOutlined />
@@ -64,8 +64,8 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
           <Tag color="blue">{columns.length} 列</Tag>
         </Space>
       ),
-      key: tableName,
-      children: columns.map((column, index) => ({
+      key: `table-${tableIndex}-${tableName}`,
+      children: columns.map((column, columnIndex) => ({
         title: (
           <Space>
             <Text code>{column.Field}</Text>
@@ -75,7 +75,7 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
             {column.Key === 'UNI' && <Tag color="green" size="small">唯一</Tag>}
           </Space>
         ),
-        key: `${tableName}-${column.Field}`,
+        key: `table-${tableIndex}-${tableName}-column-${columnIndex}-${column.Field}`,
         isLeaf: true
       }))
     }));
@@ -86,9 +86,13 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
   const handleSelect = (selectedKeys: React.Key[]) => {
     if (selectedKeys.length > 0) {
       const key = selectedKeys[0] as string;
-      const tableName = key.split('-')[0];
-      if (onSelectTable) {
-        onSelectTable(tableName);
+      // Extract table name from the new key format: table-{index}-{tableName} or table-{index}-{tableName}-column-{index}-{field}
+      const keyParts = key.split('-');
+      if (keyParts.length >= 3) {
+        const tableName = keyParts[2]; // table-{index}-{tableName}
+        if (onSelectTable) {
+          onSelectTable(tableName);
+        }
       }
     }
   };
