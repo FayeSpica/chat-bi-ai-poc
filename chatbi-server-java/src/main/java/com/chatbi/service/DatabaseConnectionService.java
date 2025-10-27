@@ -1,6 +1,5 @@
 package com.chatbi.service;
 
-import com.chatbi.config.ChatbiProperties;
 import com.chatbi.model.*;
 import com.chatbi.repository.DatabaseConnectionRepository;
 import org.slf4j.Logger;
@@ -25,8 +24,6 @@ public class DatabaseConnectionService {
     @Autowired
     private DatabaseConnectionRepository repository;
     
-    @Autowired
-    private ChatbiProperties properties;
     
     @Value("${spring.datasource.url}")
     private String datasourceUrl;
