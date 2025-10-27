@@ -89,8 +89,8 @@ export interface DatabaseConnection {
   port: number;
   username: string;
   password: string;
-  database: string;
-  charset: string;
+  database_name: string;
+  charset_name: string;
   description?: string;
   is_active: boolean;
   created_at?: string;
@@ -103,8 +103,8 @@ export interface DatabaseConnectionCreate {
   port?: number;
   username: string;
   password: string;
-  database: string;
-  charset?: string;
+  database_name: string;
+  charset_name?: string;
   description?: string;
 }
 
@@ -114,8 +114,8 @@ export interface DatabaseConnectionUpdate {
   port?: number;
   username?: string;
   password?: string;
-  database?: string;
-  charset?: string;
+  database_name?: string;
+  charset_name?: string;
   description?: string;
   is_active?: boolean;
 }
@@ -125,8 +125,8 @@ export interface DatabaseConnectionTest {
   port?: number;
   username: string;
   password: string;
-  database: string;
-  charset?: string;
+  database_name: string;
+  charset_name?: string;
 }
 
 export interface TableInfo {
@@ -135,7 +135,7 @@ export interface TableInfo {
   table_rows?: number;
   table_size?: string;
   engine?: string;
-  charset?: string;
+  charset_name?: string;
 }
 
 export interface ColumnInfo {
