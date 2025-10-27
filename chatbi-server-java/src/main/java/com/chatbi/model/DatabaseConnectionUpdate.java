@@ -1,5 +1,7 @@
 package com.chatbi.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
