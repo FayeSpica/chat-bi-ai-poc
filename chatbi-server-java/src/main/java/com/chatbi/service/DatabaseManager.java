@@ -32,14 +32,14 @@ public class DatabaseManager {
             JdbcTemplate template;
             if (connection != null) {
                 // Create a new JdbcTemplate with the specific connection's datasource
-                String url = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
+                String url = String.format("jdbc:mariadb://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
                     connection.getHost(), connection.getPort(), connection.getDatabaseName(), connection.getCharsetName());
                 
                 DriverManagerDataSource dataSource = new DriverManagerDataSource();
                 dataSource.setUrl(url);
                 dataSource.setUsername(connection.getUsername());
                 dataSource.setPassword(connection.getPassword());
-                dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+                dataSource.setDriverClassName("org.mariadb.jdbc.Driver");
                 
                 template = new JdbcTemplate(dataSource);
             } else {
@@ -75,14 +75,14 @@ public class DatabaseManager {
             JdbcTemplate template;
             if (connection != null) {
                 // Create a new JdbcTemplate with the specific connection's datasource
-                String url = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
+                String url = String.format("jdbc:mariadb://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
                     connection.getHost(), connection.getPort(), connection.getDatabaseName(), connection.getCharsetName());
                 
                 DriverManagerDataSource dataSource = new DriverManagerDataSource();
                 dataSource.setUrl(url);
                 dataSource.setUsername(connection.getUsername());
                 dataSource.setPassword(connection.getPassword());
-                dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+                dataSource.setDriverClassName("org.mariadb.jdbc.Driver");
                 
                 template = new JdbcTemplate(dataSource);
             } else {
@@ -106,14 +106,14 @@ public class DatabaseManager {
             JdbcTemplate template;
             if (connection != null) {
                 // Create a new JdbcTemplate with the specific connection's datasource
-                String url = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
+                String url = String.format("jdbc:mariadb://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
                     connection.getHost(), connection.getPort(), connection.getDatabaseName(), connection.getCharsetName());
                 
                 DriverManagerDataSource dataSource = new DriverManagerDataSource();
                 dataSource.setUrl(url);
                 dataSource.setUsername(connection.getUsername());
                 dataSource.setPassword(connection.getPassword());
-                dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
+                dataSource.setDriverClassName("org.mariadb.jdbc.Driver");
                 
                 template = new JdbcTemplate(dataSource);
             } else {

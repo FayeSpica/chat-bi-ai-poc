@@ -175,7 +175,7 @@ public class DatabaseConnectionService {
 
     public Map<String, Object> testConnection(DatabaseConnectionTest testRequest) {
         try {
-            String url = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
+            String url = String.format("jdbc:mariadb://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
                 testRequest.getHost(), testRequest.getPort(), testRequest.getDatabaseName(), testRequest.getCharsetName());
             
             try (Connection connection = DriverManager.getConnection(url, testRequest.getUsername(), testRequest.getPassword())) {
