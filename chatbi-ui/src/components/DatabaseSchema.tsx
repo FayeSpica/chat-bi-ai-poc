@@ -37,7 +37,7 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
     setError(null);
     
     try {
-      const data = await databaseAPI.getFullDatabaseSchema();
+      const data = await databaseAPI.getFullDatabaseSchema(selectedDatabaseId);
       setSchema(data);
     } catch (err: any) {
       setError(err.message || '加载数据库结构失败');
