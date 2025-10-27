@@ -220,8 +220,8 @@ const ConnectionManager: React.FC<ConnectionManagerProps> = ({ connections, onCo
         port: connection.port,
         username: connection.username,
         password: connection.password,
-        database: connection.database,
-        charset: connection.charset
+        database_name: connection.database_name,
+        charset_name: connection.charset_name
       };
       const result = await databaseAdminAPI.testConnection(testData);
       alert(result.success ? `连接成功！\n版本: ${result.version}` : `连接失败: ${result.message}`);
@@ -270,7 +270,7 @@ const ConnectionManager: React.FC<ConnectionManagerProps> = ({ connections, onCo
                   <span className="default-badge">默认</span>
                 )}
               </h4>
-              <p>{connection.host}:{connection.port}/{connection.database}</p>
+              <p>{connection.host}:{connection.port}/{connection.database_name}</p>
               {connection.description && <p className="description">{connection.description}</p>}
               <span className={`status ${connection.is_active ? 'active' : 'inactive'}`}>
                 {connection.is_active ? '活跃' : '非活跃'}
@@ -356,7 +356,7 @@ const MetadataManager: React.FC<MetadataManagerProps> = ({
                 onClick={() => onConnectionSelect(connection)}
               >
                 <h4>{connection.name}</h4>
-                <p>{connection.host}:{connection.port}/{connection.database}</p>
+                <p>{connection.host}:{connection.port}/{connection.database_name}</p>
               </div>
             ))}
           </div>
@@ -419,8 +419,8 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ connection, onSubmit, o
     port: connection?.port || 3306,
     username: connection?.username || '',
     password: connection?.password || '',
-    database: connection?.database || '',
-    charset: connection?.charset || 'utf8mb4',
+    database_name: connection?.database_name || '',
+    charset_name: connection?.charset_name || 'utf8mb4',
     description: connection?.description || ''
   });
 
@@ -496,8 +496,8 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ connection, onSubmit, o
             <label>数据库名</label>
             <input
               type="text"
-              name="database"
-              value={formData.database}
+              name="database_name"
+              value={formData.database_name}
               onChange={handleChange}
               required
             />
@@ -506,8 +506,8 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({ connection, onSubmit, o
             <label>字符集</label>
             <input
               type="text"
-              name="charset"
-              value={formData.charset}
+              name="charset_name"
+              value={formData.charset_name}
               onChange={handleChange}
             />
           </div>

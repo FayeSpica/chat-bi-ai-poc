@@ -64,7 +64,7 @@ const DatabaseSelector: React.FC<DatabaseSelectorProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>{connection.name}</span>
               <span style={{ fontSize: '12px', color: '#666', marginLeft: '8px' }}>
-                {connection.host}:{connection.port}/{connection.database}
+                {connection.host}:{connection.port}/{connection.database_name}
               </span>
             </div>
           </Option>
