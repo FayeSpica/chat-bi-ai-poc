@@ -25,7 +25,7 @@ public class SQLExecutionResponse {
         if (data != null) {
             this.data = data;
         } else {
-            this.data = new ArrayList();
+            this.data = new ArrayList<>();
         }
         this.error = error;
         this.rowCount = rowCount;
