@@ -4,7 +4,7 @@ import { PlayCircleOutlined, CodeOutlined, DatabaseOutlined } from '@ant-design/
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ChatMessage as ChatMessageType, SQLExecutionResult } from '../types';
-import { Line, Column, Bar, Pie } from '@ant-design/plots';
+import { Line, Column, Bar, Pie } from './Charts';
 import ReactMarkdown from 'react-markdown';
 
 const { Text, Paragraph } = Typography;
@@ -272,10 +272,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             xField="x"
             yField="y"
             seriesField={seriesField ? 'series' : undefined}
-            point={{ size: 3, shape: 'circle' }}
-            tooltip={{
-              fields: ['x', 'y', ...(seriesField ? ['series'] : [])]
-            }}
           />
         );
       }
@@ -288,9 +284,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             xField="x"
             yField="y"
             seriesField={seriesField ? 'series' : undefined}
-            tooltip={{
-              fields: ['x', 'y', ...(seriesField ? ['series'] : [])]
-            }}
           />
         );
       }
@@ -300,12 +293,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           <Bar
             height={commonChartHeight}
             data={chartData}
-            xField="y"
-            yField="x"
+            xField="x"
+            yField="y"
             seriesField={seriesField ? 'series' : undefined}
-            tooltip={{
-              fields: ['x', 'y', ...(seriesField ? ['series'] : [])]
-            }}
           />
         );
       }
@@ -318,14 +308,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             data={pieData}
             angleField="value"
             colorField={seriesField ? 'series' : 'type'}
-            innerRadius={0}
-            label={{
-              text: 'type',
-              style: { fontSize: 12 }
-            }}
-            tooltip={{
-              fields: ['type', 'value', ...(seriesField ? ['series'] : [])]
-            }}
           />
         );
       }
