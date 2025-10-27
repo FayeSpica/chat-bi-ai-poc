@@ -64,7 +64,7 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
           <Tag color="blue">{columns.length} 列</Tag>
         </Space>
       ),
-      key: tableName,
+      key: `table-${tableName}`,
       children: columns.map((column, index) => ({
         title: (
           <Space>
@@ -75,7 +75,7 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
             {column.Key === 'UNI' && <Tag color="green" size="small">唯一</Tag>}
           </Space>
         ),
-        key: `${tableName}-${column.Field}`,
+        key: `table-${tableName}-column-${index}-${column.Field}`,
         isLeaf: true
       }))
     }));
@@ -86,9 +86,13 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
   const handleSelect = (selectedKeys: React.Key[]) => {
     if (selectedKeys.length > 0) {
       const key = selectedKeys[0] as string;
-      const tableName = key.split('-')[0];
-      if (onSelectTable) {
-        onSelectTable(tableName);
+      // Extract table name from the new key format: table-{tableName} or table-{tableName}-column-...
+      const keyParts = key.split('-');
+      if (keyParts[0] === 'table' && keyParts[1]) {
+        const tableName = keyParts[1];
+        if (onSelectTable) {
+          onSelectTable(tableName);
+        }
       }
     }
   };
