@@ -32,12 +32,6 @@ langchain4j:
 
 # Custom Configuration
 chatbi:
-  database:
-    host: localhost
-    port: 3306
-    name: test_db
-    username: root
-    password: password
   ollama:
     base-url: http://192.168.31.230:11434
     model: qwen2.5:7b

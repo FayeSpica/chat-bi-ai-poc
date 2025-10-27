@@ -55,7 +55,7 @@ public class DatabaseAdminService {
                 tableInfo.setEngine(rs.getString("engine"));
                 tableInfo.setCharset(rs.getString("charset"));
                 return tableInfo;
-            }, connection.getDatabase());
+            }, connection.getDatabaseName());
             
         } catch (SQLException e) {
             logger.error("Database connection error for {}: {}", connection.getName(), e.getMessage(), e);
@@ -76,7 +76,7 @@ public class DatabaseAdminService {
             """;
             
             String tableComment = jdbcTemplate.queryForObject(tableCommentSql, String.class, 
-                connection.getDatabase(), tableName);
+                connection.getDatabaseName(), tableName);
             
             // Get column information
             String columnsSql = """
@@ -136,7 +136,7 @@ public class DatabaseAdminService {
                 """;
                 
                 Map<String, Object> columnInfo = jdbcTemplate.queryForMap(columnInfoSql, 
-                    connection.getDatabase(), commentUpdate.getTableName(), commentUpdate.getColumnName());
+                    connection.getDatabaseName(), commentUpdate.getTableName(), commentUpdate.getColumnName());
                 
                 String columnType = (String) columnInfo.get("COLUMN_TYPE");
                 String isNullable = (String) columnInfo.get("IS_NULLABLE");
@@ -207,7 +207,7 @@ public class DatabaseAdminService {
 
     private Connection createConnection(DatabaseConnection connection) throws SQLException {
         String url = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
-            connection.getHost(), connection.getPort(), connection.getDatabase(), connection.getCharset());
+            connection.getHost(), connection.getPort(), connection.getDatabaseName(), connection.getCharsetName());
         
         return DriverManager.getConnection(url, connection.getUsername(), connection.getPassword());
     }

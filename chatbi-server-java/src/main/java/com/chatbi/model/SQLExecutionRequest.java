@@ -2,7 +2,9 @@ package com.chatbi.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
 
+@Data
 public class SQLExecutionRequest {
     @NotBlank(message = "SQL query is required")
     @JsonProperty("sql_query")
@@ -20,31 +22,6 @@ public class SQLExecutionRequest {
     public SQLExecutionRequest(String sqlQuery, String conversationId, String databaseConnectionId) {
         this.sqlQuery = sqlQuery;
         this.conversationId = conversationId;
-        this.databaseConnectionId = databaseConnectionId;
-    }
-
-    // Getters and Setters
-    public String getSqlQuery() {
-        return sqlQuery;
-    }
-
-    public void setSqlQuery(String sqlQuery) {
-        this.sqlQuery = sqlQuery;
-    }
-
-    public String getConversationId() {
-        return conversationId;
-    }
-
-    public void setConversationId(String conversationId) {
-        this.conversationId = conversationId;
-    }
-
-    public String getDatabaseConnectionId() {
-        return databaseConnectionId;
-    }
-
-    public void setDatabaseConnectionId(String databaseConnectionId) {
         this.databaseConnectionId = databaseConnectionId;
     }
 }

@@ -6,6 +6,7 @@ import com.chatbi.repository.DatabaseConnectionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
@@ -26,6 +27,46 @@ public class DatabaseConnectionService {
     
     @Autowired
     private ChatbiProperties properties;
+    
+    @Value("${spring.datasource.url}")
+    private String datasourceUrl;
+    
+    @Value("${spring.datasource.username}")
+    private String datasourceUsername;
+    
+    @Value("${spring.datasource.password}")
+    private String datasourcePassword;
+    
+    // Helper method to parse database info from JDBC URL
+    private DatabaseInfo parseDatabaseInfo() {
+        // Parse jdbc:mysql://host:port/database from datasourceUrl
+        String url = datasourceUrl;
+        if (url.startsWith("jdbc:mysql://") || url.startsWith("jdbc:mariadb://")) {
+            url = url.substring(url.indexOf("://") + 3);
+            String[] parts = url.split("/");
+            String hostPort = parts[0];
+            String database = parts.length > 1 ? parts[1].split("\\?")[0] : "test_db";
+            
+            String[] hostPortParts = hostPort.split(":");
+            String host = hostPortParts[0];
+            int port = hostPortParts.length > 1 ? Integer.parseInt(hostPortParts[1]) : 3306;
+            
+            return new DatabaseInfo(host, port, database);
+        }
+        return new DatabaseInfo("localhost", 3306, "test_db");
+    }
+    
+    private static class DatabaseInfo {
+        final String host;
+        final int port;
+        final String database;
+        
+        DatabaseInfo(String host, int port, String database) {
+            this.host = host;
+            this.port = port;
+            this.database = database;
+        }
+    }
 
     public DatabaseConnection createConnection(DatabaseConnectionCreate createRequest) {
         String connectionId = UUID.randomUUID().toString();
@@ -38,8 +79,8 @@ public class DatabaseConnectionService {
             createRequest.getPort(),
             createRequest.getUsername(),
             createRequest.getPassword(),
-            createRequest.getDatabase(),
-            createRequest.getCharset(),
+            createRequest.getDatabaseName(),
+            createRequest.getCharsetName(),
             createRequest.getDescription(),
             true,
             now,
@@ -96,11 +137,11 @@ public class DatabaseConnectionService {
         if (updateRequest.getPassword() != null) {
             connection.setPassword(updateRequest.getPassword());
         }
-        if (updateRequest.getDatabase() != null) {
-            connection.setDatabase(updateRequest.getDatabase());
+        if (updateRequest.getDatabaseName() != null) {
+            connection.setDatabaseName(updateRequest.getDatabaseName());
         }
-        if (updateRequest.getCharset() != null) {
-            connection.setCharset(updateRequest.getCharset());
+        if (updateRequest.getCharsetName() != null) {
+            connection.setCharsetName(updateRequest.getCharsetName());
         }
         if (updateRequest.getDescription() != null) {
             connection.setDescription(updateRequest.getDescription());
@@ -138,7 +179,7 @@ public class DatabaseConnectionService {
     public Map<String, Object> testConnection(DatabaseConnectionTest testRequest) {
         try {
             String url = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
-                testRequest.getHost(), testRequest.getPort(), testRequest.getDatabase(), testRequest.getCharset());
+                testRequest.getHost(), testRequest.getPort(), testRequest.getDatabaseName(), testRequest.getCharsetName());
             
             try (Connection connection = DriverManager.getConnection(url, testRequest.getUsername(), testRequest.getPassword())) {
                 // Test query
@@ -173,14 +214,15 @@ public class DatabaseConnectionService {
         String connectionId = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
         
+        DatabaseInfo dbInfo = parseDatabaseInfo();
         DatabaseConnection defaultConnection = new DatabaseConnection(
             connectionId,
             "默认数据库",
-            properties.getDatabase().getHost(),
-            properties.getDatabase().getPort(),
-            properties.getDatabase().getUsername(),
-            properties.getDatabase().getPassword(),
-            properties.getDatabase().getName(),
+            dbInfo.host,
+            dbInfo.port,
+            datasourceUsername,
+            datasourcePassword,
+            dbInfo.database,
             "utf8mb4",
             "ChatBI系统默认数据库连接",
             true,
@@ -193,8 +235,9 @@ public class DatabaseConnectionService {
     }
 
     private boolean isDefaultConnection(DatabaseConnection connection) {
+        DatabaseInfo dbInfo = parseDatabaseInfo();
         return "默认数据库".equals(connection.getName()) &&
-               properties.getDatabase().getHost().equals(connection.getHost()) &&
-               properties.getDatabase().getName().equals(connection.getDatabase());
+               dbInfo.host.equals(connection.getHost()) &&
+               dbInfo.database.equals(connection.getDatabaseName());
     }
 }

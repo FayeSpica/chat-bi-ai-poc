@@ -2,7 +2,9 @@ package com.chatbi.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
 
+@Data
 public class CommentUpdate {
     @NotBlank(message = "Table name is required")
     @JsonProperty("table_name")
@@ -20,31 +22,6 @@ public class CommentUpdate {
     public CommentUpdate(String tableName, String columnName, String comment) {
         this.tableName = tableName;
         this.columnName = columnName;
-        this.comment = comment;
-    }
-
-    // Getters and Setters
-    public String getTableName() {
-        return tableName;
-    }
-
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
-
-    public String getColumnName() {
-        return columnName;
-    }
-
-    public void setColumnName(String columnName) {
-        this.columnName = columnName;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    public void setComment(String comment) {
         this.comment = comment;
     }
 }
