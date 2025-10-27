@@ -2,6 +2,8 @@ package com.chatbi.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +22,11 @@ public class SQLExecutionResponse {
     public SQLExecutionResponse(boolean success, List<Map<String, Object>> data, 
                                String error, Integer rowCount) {
         this.success = success;
-        this.data = data;
+        if (data != null) {
+            this.data = data;
+        } else {
+            this.data = new ArrayList();
+        }
         this.error = error;
         this.rowCount = rowCount;
     }
