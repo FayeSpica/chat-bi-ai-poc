@@ -23,24 +23,26 @@ public class DatabaseConnectionCreate {
     private String password;
     
     @NotBlank(message = "Database is required")
-    private String database;
+    @JsonProperty("database_name")
+    private String databaseName;
     
-    private String charset = "utf8mb4";
+    @JsonProperty("charset_name")
+    private String charsetName = "utf8mb4";
     private String description;
 
     // Constructors
     public DatabaseConnectionCreate() {}
 
     public DatabaseConnectionCreate(String name, String host, Integer port, 
-                                  String username, String password, String database, 
-                                  String charset, String description) {
+                                  String username, String password, String databaseName, 
+                                  String charsetName, String description) {
         this.name = name;
         this.host = host;
         this.port = port;
         this.username = username;
         this.password = password;
-        this.database = database;
-        this.charset = charset;
+        this.databaseName = databaseName;
+        this.charsetName = charsetName;
         this.description = description;
     }
 
@@ -85,20 +87,20 @@ public class DatabaseConnectionCreate {
         this.password = password;
     }
 
-    public String getDatabase() {
-        return database;
+    public String getDatabaseName() {
+        return databaseName;
     }
 
-    public void setDatabase(String database) {
-        this.database = database;
+    public void setDatabaseName(String databaseName) {
+        this.databaseName = databaseName;
     }
 
-    public String getCharset() {
-        return charset;
+    public String getCharsetName() {
+        return charsetName;
     }
 
-    public void setCharset(String charset) {
-        this.charset = charset;
+    public void setCharsetName(String charsetName) {
+        this.charsetName = charsetName;
     }
 
     public String getDescription() {

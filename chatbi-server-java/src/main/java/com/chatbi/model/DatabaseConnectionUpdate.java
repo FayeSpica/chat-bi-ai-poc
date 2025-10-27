@@ -9,8 +9,10 @@ public class DatabaseConnectionUpdate {
     private Integer port;
     private String username;
     private String password;
-    private String database;
-    private String charset;
+    @JsonProperty("database_name")
+    private String databaseName;
+    @JsonProperty("charset_name")
+    private String charsetName;
     private String description;
     private Boolean isActive;
 
@@ -58,20 +60,20 @@ public class DatabaseConnectionUpdate {
         this.password = password;
     }
 
-    public String getDatabase() {
-        return database;
+    public String getDatabaseName() {
+        return databaseName;
     }
 
-    public void setDatabase(String database) {
-        this.database = database;
+    public void setDatabaseName(String databaseName) {
+        this.databaseName = databaseName;
     }
 
-    public String getCharset() {
-        return charset;
+    public String getCharsetName() {
+        return charsetName;
     }
 
-    public void setCharset(String charset) {
-        this.charset = charset;
+    public void setCharsetName(String charsetName) {
+        this.charsetName = charsetName;
     }
 
     public String getDescription() {

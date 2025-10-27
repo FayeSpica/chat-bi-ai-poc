@@ -29,7 +29,7 @@ public class SchemaMetadataBuilder {
         Map<String, String> dbInfo = new HashMap<>();
         if (databaseConnection != null) {
             dbInfo.put("host", databaseConnection.getHost());
-            dbInfo.put("name", databaseConnection.getDatabase());
+            dbInfo.put("name", databaseConnection.getDatabaseName());
         } else {
             // Use default configuration
             dbInfo.put("host", "localhost");
@@ -104,7 +104,7 @@ public class SchemaMetadataBuilder {
                 WHERE table_schema=? AND table_name=?
             """;
             
-            String dbName = databaseConnection != null ? databaseConnection.getDatabase() : "test_db";
+            String dbName = databaseConnection != null ? databaseConnection.getDatabaseName() : "test_db";
             return databaseManager.getJdbcTemplate().queryForObject(sql, String.class, dbName, tableName);
         } catch (Exception e) {
             logger.debug("Failed to get table comment for {}: {}", tableName, e.getMessage());
@@ -121,7 +121,7 @@ public class SchemaMetadataBuilder {
                 ORDER BY ordinal_position
             """;
             
-            String dbName = databaseConnection != null ? databaseConnection.getDatabase() : "test_db";
+            String dbName = databaseConnection != null ? databaseConnection.getDatabaseName() : "test_db";
             return databaseManager.getJdbcTemplate().queryForList(sql, dbName, tableName);
         } catch (Exception e) {
             logger.debug("Failed to get columns for {}: {}", tableName, e.getMessage());

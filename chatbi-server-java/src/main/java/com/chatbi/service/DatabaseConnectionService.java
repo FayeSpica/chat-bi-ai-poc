@@ -38,8 +38,8 @@ public class DatabaseConnectionService {
             createRequest.getPort(),
             createRequest.getUsername(),
             createRequest.getPassword(),
-            createRequest.getDatabase(),
-            createRequest.getCharset(),
+            createRequest.getDatabaseName(),
+            createRequest.getCharsetName(),
             createRequest.getDescription(),
             true,
             now,
@@ -96,11 +96,11 @@ public class DatabaseConnectionService {
         if (updateRequest.getPassword() != null) {
             connection.setPassword(updateRequest.getPassword());
         }
-        if (updateRequest.getDatabase() != null) {
-            connection.setDatabase(updateRequest.getDatabase());
+        if (updateRequest.getDatabaseName() != null) {
+            connection.setDatabaseName(updateRequest.getDatabaseName());
         }
-        if (updateRequest.getCharset() != null) {
-            connection.setCharset(updateRequest.getCharset());
+        if (updateRequest.getCharsetName() != null) {
+            connection.setCharsetName(updateRequest.getCharsetName());
         }
         if (updateRequest.getDescription() != null) {
             connection.setDescription(updateRequest.getDescription());
@@ -138,7 +138,7 @@ public class DatabaseConnectionService {
     public Map<String, Object> testConnection(DatabaseConnectionTest testRequest) {
         try {
             String url = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
-                testRequest.getHost(), testRequest.getPort(), testRequest.getDatabase(), testRequest.getCharset());
+                testRequest.getHost(), testRequest.getPort(), testRequest.getDatabaseName(), testRequest.getCharsetName());
             
             try (Connection connection = DriverManager.getConnection(url, testRequest.getUsername(), testRequest.getPassword())) {
                 // Test query
@@ -195,6 +195,6 @@ public class DatabaseConnectionService {
     private boolean isDefaultConnection(DatabaseConnection connection) {
         return "默认数据库".equals(connection.getName()) &&
                properties.getDatabase().getHost().equals(connection.getHost()) &&
-               properties.getDatabase().getName().equals(connection.getDatabase());
+               properties.getDatabase().getName().equals(connection.getDatabaseName());
     }
 }
