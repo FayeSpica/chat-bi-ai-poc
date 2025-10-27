@@ -206,7 +206,7 @@ public class DatabaseAdminService {
     }
 
     private Connection createConnection(DatabaseConnection connection) throws SQLException {
-        String url = String.format("jdbc:mysql://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false&serverTimezone=UTC",
+        String url = String.format("jdbc:mariadb://%s:%d/%s?useUnicode=true&characterEncoding=%s&useSSL=false",
             connection.getHost(), connection.getPort(), connection.getDatabaseName(), connection.getCharsetName());
         
         return DriverManager.getConnection(url, connection.getUsername(), connection.getPassword());
