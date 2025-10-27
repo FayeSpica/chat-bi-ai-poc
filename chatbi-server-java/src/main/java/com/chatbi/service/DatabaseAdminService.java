@@ -105,7 +105,7 @@ public class DatabaseAdminService {
                 columnInfo.setColumnComment(rs.getString("column_comment"));
                 columnInfo.setColumnOrder(rs.getInt("column_order"));
                 return columnInfo;
-            }, connection.getDatabase(), tableName);
+            }, connection.getDatabaseName(), tableName);
             
             TableSchema tableSchema = new TableSchema();
             tableSchema.setTableName(tableName);
