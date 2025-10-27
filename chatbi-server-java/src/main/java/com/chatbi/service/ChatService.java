@@ -155,7 +155,7 @@ public class ChatService {
                     connection.get().getName(), connection.get().getId());
                 return connection.get();
             } else {
-                logger.warning("Database connection not found: {}", databaseConnectionId);
+                logger.warn("Database connection not found: {}", databaseConnectionId);
             }
         }
         

@@ -4,6 +4,7 @@ import com.chatbi.model.*;
 import com.chatbi.service.ChatService;
 import com.chatbi.service.DatabaseAdminService;
 import com.chatbi.service.DatabaseManager;
+import com.chatbi.service.SchemaMetadataBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,9 @@ public class ChatController {
     
     @Autowired
     private DatabaseAdminService databaseAdminService;
+    
+    @Autowired
+    private SchemaMetadataBuilder metadataBuilder;
 
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> root() {
@@ -84,7 +88,7 @@ public class ChatController {
                 selectedConnection = databaseAdminService.getConnection(request.getDatabaseConnectionId())
                     .orElse(null);
                 if (selectedConnection == null) {
-                    logger.warning("Database connection not found: {}", request.getDatabaseConnectionId());
+                    logger.warn("Database connection not found: {}", request.getDatabaseConnectionId());
                 }
             }
             
@@ -176,8 +180,8 @@ public class ChatController {
     @GetMapping("/metadata")
     public ResponseEntity<Map<String, Object>> getEnrichedMetadata() {
         try {
-            // This would need to be implemented with the metadata builder
-            return ResponseEntity.ok(Map.of("metadata", "Not implemented yet"));
+            Map<String, Object> metadata = metadataBuilder.buildDatabaseMetadata(null);
+            return ResponseEntity.ok(Map.of("metadata", metadata));
         } catch (Exception e) {
             logger.error("Error getting metadata: {}", e.getMessage(), e);
             throw new RuntimeException("获取元数据时发生错误: " + e.getMessage());
