@@ -1,0 +1,89 @@
+package com.chatbi.service;
+
+import com.chatbi.model.DatabaseConnection;
+import com.chatbi.model.SQLExecutionResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Service;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class DatabaseManager {
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseManager.class);
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    private DatabaseConnectionService databaseConnectionService;
+
+    public SQLExecutionResponse executeQuery(String sql, DatabaseConnection connection) {
+        try {
+            logger.info("Executing SQL query: {}", sql);
+            
+            // Create a new JdbcTemplate with the connection's datasource if needed
+            JdbcTemplate template = jdbcTemplate;
+            
+            if (sql.trim().toUpperCase().startsWith("SELECT")) {
+                List<Map<String, Object>> data = template.queryForList(sql);
+                return new SQLExecutionResponse(true, data, null, data.size());
+            } else {
+                int rowCount = template.update(sql);
+                return new SQLExecutionResponse(true, null, null, rowCount);
+            }
+        } catch (Exception e) {
+            logger.error("Error executing SQL query: {}", e.getMessage(), e);
+            return new SQLExecutionResponse(false, null, e.getMessage(), 0);
+        }
+    }
+
+    public SQLExecutionResponse executeQuery(String sql) {
+        DatabaseConnection activeConnection = databaseConnectionService.getActiveConnection();
+        if (activeConnection != null) {
+            return executeQuery(sql, activeConnection);
+        } else {
+            return executeQuery(sql, null);
+        }
+    }
+
+    public List<String> getAllTables(DatabaseConnection connection) {
+        try {
+            String sql = "SHOW TABLES";
+            return jdbcTemplate.queryForList(sql, String.class);
+        } catch (Exception e) {
+            logger.error("Error getting tables: {}", e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    public List<String> getAllTables() {
+        DatabaseConnection activeConnection = databaseConnectionService.getActiveConnection();
+        return getAllTables(activeConnection);
+    }
+
+    public List<Map<String, Object>> getTableSchema(String tableName, DatabaseConnection connection) {
+        try {
+            String sql = "DESCRIBE " + tableName;
+            return jdbcTemplate.queryForList(sql);
+        } catch (Exception e) {
+            logger.error("Error getting schema for table {}: {}", tableName, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    public List<Map<String, Object>> getTableSchema(String tableName) {
+        DatabaseConnection activeConnection = databaseConnectionService.getActiveConnection();
+        return getTableSchema(tableName, activeConnection);
+    }
+
+    public JdbcTemplate getJdbcTemplate() {
+        return jdbcTemplate;
+    }
+}
