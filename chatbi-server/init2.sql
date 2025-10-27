@@ -76,3 +76,23 @@ INSERT INTO orders (user_id, product_name, amount, quantity, order_date, status)
 (6, 'Samsung Galaxy', 5999.00, 1, '2024-01-28', 'completed'),
 (7, 'Dell XPS', 8999.00, 1, '2024-01-29', 'completed'),
 (8, 'Sony WH-1000XM4', 2199.00, 1, '2024-01-30', 'completed');
+
+-- 创建数据库连接表
+CREATE TABLE IF NOT EXISTS database_connection (
+    id VARCHAR(255) PRIMARY KEY COMMENT '连接ID，主键',
+    name VARCHAR(255) NOT NULL COMMENT '连接名称',
+    host VARCHAR(255) NOT NULL COMMENT '数据库主机地址',
+    port INT NOT NULL DEFAULT 3306 COMMENT '数据库端口',
+    username VARCHAR(255) NOT NULL COMMENT '数据库用户名',
+    password VARCHAR(255) NOT NULL COMMENT '数据库密码',
+    database VARCHAR(255) NOT NULL COMMENT '数据库名称',
+    charset VARCHAR(50) DEFAULT 'utf8mb4' COMMENT '字符集',
+    description TEXT COMMENT '连接描述',
+    is_active BOOLEAN DEFAULT TRUE COMMENT '是否激活',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT='数据库连接配置表';
+
+-- 插入默认数据库连接配置
+INSERT INTO database_connection (id, name, host, port, username, password, database, charset, description, is_active, created_at, updated_at) VALUES
+('0e21075e-f8c9-493d-85c2-bba71aba0afc', '默认数据库2', 'mysql', 3306, 'root', 'password', 'test2_db', 'utf8mb4', '', TRUE, '2025-09-22 17:25:32', '2025-09-22 17:25:32');
