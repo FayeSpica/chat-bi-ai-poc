@@ -24,35 +24,34 @@
 
 ```
 chat-bi-ai-poc/
-├── chatbi-server/                # 后端 API 服务 (FastAPI)
-│   ├── app/
-│   │   ├── main.py               # FastAPI 主应用与路由
-│   │   ├── config.py             # 配置管理
-│   │   ├── models.py             # Pydantic 模型
-│   │   ├── database.py           # 数据库连接与查询
-│   │   ├── metadata_builder.py   # 增强元数据构建（表/字段注释、样例值）
-│   │   ├── semantic_sql_converter.py  # 语义SQL与SQL生成，Ollama 调用、摘要构建
-│   │   └── chat_service.py       # 会话管理与业务编排
-│   ├── init.sql                  # 初始化 SQL（utf8mb4 + COMMENT）
-│   ├── requirements.txt          # Python 依赖
+├── chatbi-server-java/           # 后端 API 服务 (Java Spring Boot)
+│   ├── src/main/java/com/chatbi/
+│   │   ├── controller/           # REST 控制器
+│   │   ├── service/              # 业务服务层
+│   │   ├── model/                # 数据模型
+│   │   └── repository/           # 数据访问层
+│   ├── src/main/resources/
+│   │   └── application.yml       # 应用配置
+│   ├── pom.xml                   # Maven 依赖
 │   └── Dockerfile
-├── chatbi-ui/                    # 前端 UI (React + TS + AntD)
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── ChatMessage.tsx   # 消息与调试面板、Markdown/代码高亮、图表
-│   │   │   └── DatabaseSchema.tsx# 数据库结构树
-│   │   ├── services/api.ts       # API 封装
-│   │   ├── types/                # TS 类型定义
-│   │   └── App.tsx               # 页面布局、自动执行 SQL
-│   ├── package.json
-│   └── Dockerfile
+├── copilot/
+│   └── chatbi-ui/                # 前端 UI (React + TS + AntD)
+│       ├── src/
+│       │   ├── components/
+│       │   │   ├── ChatMessage.tsx   # 消息与调试面板、Markdown/代码高亮、图表
+│       │   │   └── DatabaseSchema.tsx# 数据库结构树
+│       │   ├── services/api.ts       # API 封装（支持环境变量配置）
+│       │   ├── types/                # TS 类型定义
+│       │   └── App.tsx               # 页面布局、自动执行 SQL
+│       ├── package.json
+│       └── Dockerfile
 ├── docker-compose.yml            # 容器编排（MySQL/Server/UI）
 └── README.md
 ```
 
 ## 🛠️ 技术栈
 
-- 后端：FastAPI, Pydantic, PyMySQL, LangChain (Ollama), Uvicorn
+- 后端：Java Spring Boot, LangChain4j (Ollama), MySQL Connector
 - 前端：React 18, TypeScript, Ant Design, @ant-design/plots, react-markdown, react-syntax-highlighter, Axios, Vite
 - 数据库：MySQL 8.0（utf8mb4）
 - 部署：Docker Compose
@@ -132,6 +131,22 @@ docker compose up -d --build
 | OLLAMA_MODEL | 模型名称 | qwen2.5:7b（示例） |
 | DB_HOST/PORT/USER/PASSWORD/NAME | 数据库连接 | mysql:3306/root/password/test_db |
 | API_HOST/API_PORT | 后端服务监听 | 0.0.0.0/8000 |
+| VITE_API_BASE_URL | 前端API基础地址 | http://localhost:8000/api |
+
+### 前端环境变量配置
+
+前端支持通过环境变量 `VITE_API_BASE_URL` 配置后端API地址，默认值为 `http://localhost:8000/api`。
+
+在 `docker-compose.yml` 中可以通过以下方式配置：
+```yaml
+environment:
+  - VITE_API_BASE_URL=http://your-backend-host:8000/api
+```
+
+或者在本地开发时创建 `.env` 文件：
+```bash
+VITE_API_BASE_URL=http://localhost:8000/api
+```
 
 ## 🧠 SQL 生成与修复说明
 
