@@ -65,10 +65,11 @@ services:
         - HTTP_PROXY=http://host.docker.internal:7890
         - HTTPS_PROXY=http://host.docker.internal:7890
         - NO_PROXY=localhost,127.0.0.1,::1
-        - VITE_CHATBI_SERVER_ENDPOINT=${CHATBI_SERVER_ENDPOINT:-http://chatbi-server-java:8000/api}
     container_name: chatbi-ui
     ports:
       - "3000:80"
+    environment:
+      - CHATBI_SERVER_ENDPOINT=${CHATBI_SERVER_ENDPOINT:-http://chatbi-server-java:8000/api}
     depends_on:
       - chatbi-server-java
     restart: unless-stopped
