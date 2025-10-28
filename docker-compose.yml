@@ -67,9 +67,9 @@ services:
         - NO_PROXY=localhost,127.0.0.1,::1
     container_name: chatbi-ui
     ports:
-      - "3000:3000"
+      - "3000:80"
     environment:
-      - VITE_API_BASE_URL=http://localhost:8000/api
+      - CHATBI_SERVER_ENDPOINT=${CHATBI_SERVER_ENDPOINT:-http://chatbi-server-java:8000/api}
     depends_on:
       - chatbi-server-java
     restart: unless-stopped
