@@ -59,7 +59,7 @@ services:
   # 前端UI服务
   chatbi-ui:
     build:
-      context: ./chatbi-ui
+      context: ./copilot/chatbi-ui
       dockerfile: Dockerfile
       args:
         - HTTP_PROXY=http://host.docker.internal:7890
