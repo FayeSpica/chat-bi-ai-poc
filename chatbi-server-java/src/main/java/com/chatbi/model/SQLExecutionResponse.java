@@ -6,6 +6,7 @@ import lombok.Data;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Data
 public class SQLExecutionResponse {
@@ -16,18 +17,11 @@ public class SQLExecutionResponse {
     @JsonProperty("row_count")
     private Integer rowCount;
 
-    // Constructors
-    public SQLExecutionResponse() {}
-
     public SQLExecutionResponse(boolean success, List<Map<String, Object>> data, 
                                String error, Integer rowCount) {
         this.success = success;
-        if (data != null) {
-            this.data = data;
-        } else {
-            this.data = new ArrayList<>();
-        }
-        this.error = error;
+        this.data = Objects.requireNonNullElseGet(data, ArrayList::new);
+        this.error = Objects.requireNonNullElse(error, "");
         this.rowCount = rowCount;
     }
 }
