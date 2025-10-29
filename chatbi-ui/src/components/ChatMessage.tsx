@@ -250,6 +250,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           <Table
             columns={tableColumns}
             dataSource={result.data}
+            rowKey={(_, index) => String(index)}
             pagination={{
               pageSize: 10,
               size: 'small',
