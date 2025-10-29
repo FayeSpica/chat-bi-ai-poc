@@ -19,7 +19,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
 public class ChatController {
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
     

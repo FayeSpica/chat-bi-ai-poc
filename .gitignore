@@ -123,3 +123,4 @@ jspm_packages/
 # Temporary files
 tmp/
 temp/
+./chatbi-server-java/target/

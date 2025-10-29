@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: chatbi-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: chatbi_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db-init/init-system.sql:/docker-entrypoint-initdb.d/01-init-system.sql
+      - ./db-init/init.sql:/docker-entrypoint-initdb.d/02-init-sample.sql
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --skip-character-set-client-handshake
+    restart: unless-stopped
+    networks:
+      - chatbi-network
+
+networks:
+  chatbi-network:
+    name: chatbi-network
+    driver: bridge
+
+volumes:
+  mysql_data:
+

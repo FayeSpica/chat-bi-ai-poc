@@ -1,28 +1,6 @@
 version: '3.8'
 
 services:
-  # MySQL数据库
-  mysql:
-    image: mysql:8.0
-    container_name: chatbi-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: test_db
-      MYSQL_USER: chatbi
-      MYSQL_PASSWORD: chatbi123
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./chatbi-server/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./chatbi-server/init2.sql:/docker-entrypoint-initdb.d/init2.sql
-    command: >
-      --default-authentication-plugin=mysql_native_password
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-      --skip-character-set-client-handshake
-    restart: unless-stopped
-
   # 已在宿主机运行 Ollama（不在 compose 中启动）
 
   # 后端API服务 (Java Spring Boot)
@@ -33,28 +11,28 @@ services:
       args:
         - HTTP_PROXY=http://host.docker.internal:7890
         - HTTPS_PROXY=http://host.docker.internal:7890
-        - NO_PROXY=localhost,127.0.0.1,::1
+        - NO_PROXY=localhost,127.0.0.1,::1,192.168.31.149
     container_name: chatbi-server-java
     ports:
       - "8000:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/test_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://192.168.31.149:3306/test_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=password
-      - CHATBI_DATABASE_HOST=mysql
+      - CHATBI_DATABASE_HOST=192.168.31.149
       - CHATBI_DATABASE_PORT=3306
       - CHATBI_DATABASE_NAME=test_db
       - CHATBI_DATABASE_USERNAME=root
       - CHATBI_DATABASE_PASSWORD=password
-      - CHATBI_OLLAMA_BASE_URL=http://192.168.31.230:11434
+      - CHATBI_OLLAMA_BASE_URL=http://192.168.31.149:11434
       - CHATBI_OLLAMA_MODEL=qwen2.5:7b
-      - LANGCHAIN4J_OLLAMA_BASE_URL=http://192.168.31.230:11434
+      - LANGCHAIN4J_OLLAMA_BASE_URL=http://192.168.31.149:11434
       - LANGCHAIN4J_OLLAMA_MODEL_NAME=qwen2.5:7b
-    depends_on:
-      - mysql
     restart: unless-stopped
+    networks:
+      - chatbi-network
 
   # 前端UI服务
   chatbi-ui:
@@ -64,15 +42,19 @@ services:
       args:
         - HTTP_PROXY=http://host.docker.internal:7890
         - HTTPS_PROXY=http://host.docker.internal:7890
-        - NO_PROXY=localhost,127.0.0.1,::1
+        - NO_PROXY=localhost,127.0.0.1,::1,192.168.31.149
     container_name: chatbi-ui
     ports:
       - "3000:3000"
     environment:
-      - VITE_API_BASE_URL=http://localhost:8000/api
+      - VITE_API_BASE_URL=http://192.168.31.149:8000/api
     depends_on:
       - chatbi-server-java
     restart: unless-stopped
+    networks:
+      - chatbi-network
 
-volumes:
-  mysql_data:
+networks:
+  chatbi-network:
+    name: chatbi-network
+    external: true
