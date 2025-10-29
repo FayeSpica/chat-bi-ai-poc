@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout, message, Spin, Alert, Button } from 'antd';
-import { ReloadOutlined, DatabaseOutlined, SettingOutlined } from '@ant-design/icons';
+import { ReloadOutlined, DatabaseOutlined, SettingOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import ChatMessage from './components/ChatMessage';
 import ChatInput from './components/ChatInput';
 import DatabaseSchema from './components/DatabaseSchema';
@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [refreshDatabaseSchema, setRefreshDatabaseSchema] = useState(0);
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | undefined>();
   const [availableConnections, setAvailableConnections] = useState<DatabaseConnection[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(true); // 默认折叠
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 检查系统状态
@@ -306,7 +307,38 @@ const App: React.FC = () => {
       </Header>
 
       <Layout>
-        <Sider width={400} style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}>
+        <Sider 
+          width={400}
+          collapsedWidth={0}
+          collapsible
+          collapsed={sidebarCollapsed}
+          onCollapse={setSidebarCollapsed}
+          trigger={null}
+          style={{ background: '#fff', borderRight: '1px solid #f0f0f0', overflow: sidebarCollapsed ? 'visible' : 'hidden', position: 'relative' }}
+        >
+          <Button
+            type="text"
+            icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            style={{
+              position: 'absolute',
+              right: sidebarCollapsed ? -36 : 8,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 1002,
+              transition: 'right 0.2s, transform 0.2s',
+              background: '#fff',
+              border: '1px solid #f0f0f0',
+              borderRadius: sidebarCollapsed ? '0 4px 4px 0' : '4px',
+              boxShadow: '2px 2px 8px rgba(0,0,0,0.1)',
+              width: '36px',
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0
+            }}
+          />
           <DatabaseSchema 
             key={refreshDatabaseSchema}
             onSelectTable={handleSelectTable}
