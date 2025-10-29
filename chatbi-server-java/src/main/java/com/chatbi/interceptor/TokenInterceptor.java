@@ -4,6 +4,10 @@ import com.chatbi.annotation.EnableAuth;
 import com.chatbi.exception.TokenValidationException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -78,6 +82,25 @@ public class TokenInterceptor implements HandlerInterceptor {
                 return false;
             }
             
+            // 角色校验：当注解中配置了 roleNames 时，要求用户至少具备其中一个角色
+            String[] requiredRoles = enableAuth.roleNames();
+            if (requiredRoles != null && requiredRoles.length > 0) {
+                Set<String> userRoles = parseRolesFromToken(token);
+                boolean hasAnyRequiredRole = Arrays.stream(requiredRoles)
+                        .filter(r -> r != null && !r.trim().isEmpty())
+                        .map(String::trim)
+                        .anyMatch(req -> userRoles.contains(req));
+
+                if (!hasAnyRequiredRole) {
+                    logger.warn("Forbidden: missing required role. required={}, userRoles={}",
+                            Arrays.toString(requiredRoles), userRoles);
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"error\":\"缺少访问所需角色\",\"code\":403}");
+                    return false;
+                }
+            }
+
             logger.debug("Token validated successfully for request: {} {}", 
                 request.getMethod(), request.getRequestURI());
         }
@@ -136,5 +159,44 @@ public class TokenInterceptor implements HandlerInterceptor {
         // return tokenService.isValidToken(token);
         
         return false;
+    }
+
+    /**
+     * 从token中解析用户角色集合。
+     * 这里提供示例实现：
+     * - 对内置演示token映射固定角色
+     * - 也支持形如 "roles:ADMIN,DBA,USER" 的简易明文格式
+     */
+    private Set<String> parseRolesFromToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        String trimmed = token.trim();
+
+        // 简易明文格式：roles:ADMIN,DBA
+        if (trimmed.startsWith("roles:")) {
+            String rolesPart = trimmed.substring("roles:".length());
+            String[] parts = rolesPart.split(",");
+            Set<String> roles = new HashSet<>();
+            for (String p : parts) {
+                String role = p == null ? null : p.trim();
+                if (role != null && !role.isEmpty()) {
+                    roles.add(role);
+                }
+            }
+            return roles;
+        }
+
+        // 演示token到角色的简单映射
+        if ("demo-token-123456".equals(trimmed)) {
+            return new HashSet<>(Arrays.asList("ADMIN", "DBA"));
+        }
+        if ("test-token-abcdef".equals(trimmed)) {
+            return new HashSet<>(Collections.singletonList("USER"));
+        }
+
+        // 默认无角色
+        return Collections.emptySet();
     }
 }
