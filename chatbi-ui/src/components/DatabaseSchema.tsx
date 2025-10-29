@@ -38,9 +38,12 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
     
     try {
       const data = await databaseAPI.getFullDatabaseSchema(selectedDatabaseId);
-      setSchema(data);
+      console.log('Database schema loaded:', data);
+      setSchema(data || {});
     } catch (err: any) {
+      console.error('Failed to load database schema:', err);
       setError(err.message || '加载数据库结构失败');
+      setSchema({});
     } finally {
       setLoading(false);
     }
@@ -56,29 +59,60 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
   }, [selectedDatabaseId]);
 
   const renderTreeData = () => {
-    const treeData = Object.entries(schema).map(([tableName, columns]) => ({
-      title: (
-        <Space>
-          <TableOutlined />
-          <Text strong>{tableName}</Text>
-          <Tag color="blue">{columns.length} 列</Tag>
-        </Space>
-      ),
-      key: `table-${tableName}`,
-      children: columns.map((column, index) => ({
+    if (!schema || Object.keys(schema).length === 0) {
+      return [];
+    }
+    
+    const treeData = Object.entries(schema).map(([tableName, columns]) => {
+      // 处理两种不同的数据格式：
+      // 1. 使用 connectionId 时：columns 是 ColumnInfo[]，字段名是 column_name, data_type 等
+      // 2. 不使用 connectionId 时：columns 是 DESCRIBE 结果，字段名是 Field, Type 等
+      const columnArray = Array.isArray(columns) ? columns : [];
+      
+      console.log(`Table ${tableName} columns:`, columnArray);
+      
+      return {
         title: (
           <Space>
-            <Text code>{column.Field}</Text>
-            <Text type="secondary">{column.Type}</Text>
-            {column.Key === 'PRI' && <Tag color="red" size="small">主键</Tag>}
-            {column.Null === 'NO' && <Tag color="orange" size="small">非空</Tag>}
-            {column.Key === 'UNI' && <Tag color="green" size="small">唯一</Tag>}
+            <TableOutlined />
+            <Text strong>{tableName}</Text>
+            <Tag color="blue">{columnArray.length} 列</Tag>
           </Space>
         ),
-        key: `table-${tableName}-column-${index}-${column.Field}`,
-        isLeaf: true
-      }))
-    }));
+        key: `table-${tableName}`,
+        children: columnArray
+          .map((column: any, index: number) => {
+            // 适配两种数据格式
+            // DESCRIBE 格式：Field, Type, Null, Key, Default, Extra
+            // ColumnInfo 格式：column_name, data_type, is_nullable, column_key, column_default, extra
+            const fieldName = column.Field || column.column_name || '';
+            const fieldType = column.Type || column.data_type || '';
+            const isPrimaryKey = column.Key === 'PRI' || column.column_key === 'PRI';
+            const isUnique = column.Key === 'UNI' || column.column_key === 'UNI';
+            const isNotNull = column.Null === 'NO' || column.is_nullable === 'NO' || column.is_nullable === false;
+            
+            // 如果字段名为空，跳过该项
+            if (!fieldName) {
+              return null;
+            }
+            
+            return {
+              title: (
+                <Space>
+                  <Text code>{fieldName}</Text>
+                  <Text type="secondary">{fieldType}</Text>
+                  {isPrimaryKey && <Tag color="red" size="small">主键</Tag>}
+                  {isNotNull && <Tag color="orange" size="small">非空</Tag>}
+                  {isUnique && <Tag color="green" size="small">唯一</Tag>}
+                </Space>
+              ),
+              key: `table-${tableName}-column-${index}-${fieldName}`,
+              isLeaf: true
+            };
+          })
+          .filter((child: any) => child !== null) // 过滤掉null项
+      };
+    });
 
     return treeData;
   };
