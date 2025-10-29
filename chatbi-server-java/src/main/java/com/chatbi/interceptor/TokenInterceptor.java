@@ -3,6 +3,7 @@ package com.chatbi.interceptor;
 import com.chatbi.annotation.EnableAuth;
 import com.chatbi.exception.TokenValidationException;
 import com.chatbi.model.UserToken;
+import com.chatbi.service.UserWhitelistService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +35,12 @@ public class TokenInterceptor implements HandlerInterceptor {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String REQUEST_ATTR_USER_TOKEN = "userToken";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private final UserWhitelistService userWhitelistService;
+
+    public TokenInterceptor(UserWhitelistService userWhitelistService) {
+        this.userWhitelistService = userWhitelistService;
+    }
     
     /**
      * 这里可以配置有效的token列表，实际应用中应该从数据库或配置中心获取
@@ -87,7 +94,17 @@ public class TokenInterceptor implements HandlerInterceptor {
                 response.getWriter().write("{\"error\":\"认证token无效\",\"code\":401}");
                 return false;
             }
-            
+            // 白名单校验：仅允许白名单用户访问
+            UserToken userTokenForWhitelist = parseUserTokenFromJson(token);
+            boolean allowed = userWhitelistService.isWhitelisted(userTokenForWhitelist, token);
+            if (!allowed) {
+                logger.warn("Forbidden: user not in whitelist for request: {} {}", request.getMethod(), request.getRequestURI());
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"error\":\"用户不在白名单（需提供userId）\",\"code\":403}");
+                return false;
+            }
+
             // 角色校验：当注解中配置了 roleNames 时，要求用户至少具备其中一个角色
             String[] requiredRoles = enableAuth.roleNames();
             if (requiredRoles != null && requiredRoles.length > 0) {
