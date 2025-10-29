@@ -1,5 +1,6 @@
 package com.chatbi.controller;
 
+import com.chatbi.annotation.EnableAuth;
 import com.chatbi.model.*;
 import com.chatbi.service.ChatService;
 import com.chatbi.service.DatabaseAdminService;
@@ -67,6 +68,7 @@ public class ChatController {
     }
 
     @PostMapping("/chat")
+    @EnableAuth  // 示例：此接口需要token验证
     public ResponseEntity<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
         try {
             logger.info("Incoming chat: conversation_id={}, message={}", 
@@ -81,6 +83,7 @@ public class ChatController {
     }
 
     @PostMapping("/execute-sql")
+    @EnableAuth  // 示例：此接口需要token验证
     public ResponseEntity<SQLExecutionResponse> executeSql(@Valid @RequestBody SQLExecutionRequest request) {
         try {
             // Get database connection
