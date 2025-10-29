@@ -222,9 +222,9 @@ public class TokenInterceptor implements HandlerInterceptor {
     /**
      * 将JSON格式的token解析为UserToken对象。
      * 兼容以下字段名：
-     * - userId / uid
+     * - userId / uid / id
      * - userName / username / name
-     * - roleNames (数组或逗号分隔字符串) / roles
+     * - roleNames (数组或逗号分隔字符串) / roles / authorities
      */
     private UserToken parseUserTokenFromJson(String token) {
         if (token == null) {
@@ -236,54 +236,34 @@ public class TokenInterceptor implements HandlerInterceptor {
         }
 
         try {
+            // 先检查并处理 roleNames 可能是逗号分隔字符串的情况
             JsonNode root = OBJECT_MAPPER.readTree(trimmed);
-            UserToken userToken = new UserToken();
-
-            // userId
-            JsonNode userIdNode = firstNonNull(root, "userId", "uid", "id");
-            if (userIdNode != null && userIdNode.isTextual()) {
-                userToken.setUserId(userIdNode.asText());
-            }
-
-            // userName
-            JsonNode userNameNode = firstNonNull(root, "userName", "username", "name");
-            if (userNameNode != null && userNameNode.isTextual()) {
-                userToken.setUserName(userNameNode.asText());
-            }
-
-            // roles
-            Set<String> roles = new java.util.HashSet<>();
-            JsonNode rolesNode = firstNonNull(root, "roleNames", "roles", "authorities");
-            if (rolesNode != null) {
-                if (rolesNode.isArray()) {
-                    for (JsonNode n : rolesNode) {
-                        if (n != null && n.isTextual()) {
-                            String role = n.asText().trim();
-                            if (!role.isEmpty()) roles.add(role);
-                        }
-                    }
-                } else if (rolesNode.isTextual()) {
-                    String[] parts = rolesNode.asText().split(",");
+            String[] roleFields = {"roleNames", "roles", "authorities"};
+            for (String fieldName : roleFields) {
+                if (root.has(fieldName) && root.get(fieldName).isTextual()) {
+                    // 如果是逗号分隔的字符串，转换为数组格式
+                    String rolesStr = root.get(fieldName).asText();
+                    String[] parts = rolesStr.split(",");
+                    java.util.List<String> rolesList = new java.util.ArrayList<>();
                     for (String p : parts) {
                         String role = p == null ? null : p.trim();
-                        if (role != null && !role.isEmpty()) roles.add(role);
+                        if (role != null && !role.isEmpty()) {
+                            rolesList.add(role);
+                        }
                     }
+                    // 将字符串字段替换为数组
+                    ((com.fasterxml.jackson.databind.node.ObjectNode) root).set(fieldName, 
+                        OBJECT_MAPPER.valueToTree(rolesList));
+                    break;
                 }
             }
-            userToken.setRoleNames(roles);
-
+            
+            // 使用 ObjectMapper 直接转换为 UserToken 对象
+            UserToken userToken = OBJECT_MAPPER.treeToValue(root, UserToken.class);
             return userToken;
         } catch (JsonProcessingException e) {
             // 不是合法JSON，忽略
             return null;
         }
-    }
-
-    private JsonNode firstNonNull(JsonNode root, String... names) {
-        for (String name : names) {
-            JsonNode node = root.get(name);
-            if (node != null && !node.isNull()) return node;
-        }
-        return null;
     }
 }

@@ -1,5 +1,7 @@
 package com.chatbi.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -13,16 +15,22 @@ public class UserToken {
     /**
      * 用户唯一标识（可选）
      */
+    @JsonProperty("userId")
+    @JsonAlias({"uid", "id"})
     private String userId;
 
     /**
      * 用户名（可选）
      */
+    @JsonProperty("userName")
+    @JsonAlias({"username", "name"})
     private String userName;
 
     /**
      * 角色名称集合
      */
+    @JsonProperty("roleNames")
+    @JsonAlias({"roles", "authorities"})
     private Set<String> roleNames = new HashSet<>();
 
     public UserToken() {
