@@ -166,3 +166,23 @@ export interface UserToken {
   userName?: string;
   roleNames?: string[];
 }
+
+// 会话与消息（持久化）
+export interface PersistedChatSession {
+  id: number;
+  userId: string;
+  title?: string | null;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PersistedChatMessage {
+  id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  createdAt: string;
+  semanticSql?: any;
+  sqlQuery?: string;
+  executionResult?: any;
+}

@@ -4,23 +4,25 @@ import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 
 @Entity
-@Table(name = "user_whitelist", indexes = {
-        @Index(name = "idx_user_whitelist_user_id", columnList = "user_id")
+@Table(name = "chat_session", indexes = {
+        @Index(name = "idx_chat_session_user_id", columnList = "user_id"),
+        @Index(name = "idx_chat_session_updated_at", columnList = "updated_at"),
+        @Index(name = "idx_chat_session_archived", columnList = "archived")
 })
-public class UserWhitelist {
+public class ChatSession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", length = 191)
+    @Column(name = "user_id", length = 191, nullable = false)
     private String userId;
 
-    @Column(name = "role", length = 50, nullable = false)
-    private String role = "READER"; // 默认角色：READER
+    @Column(name = "title", length = 255)
+    private String title;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = Boolean.TRUE;
+    @Column(name = "archived", nullable = false)
+    private Boolean archived = Boolean.FALSE;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt = OffsetDateTime.now();
@@ -39,13 +41,11 @@ public class UserWhitelist {
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
 
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
-    // userName and tokenValue are intentionally not stored
-
-    public Boolean getIsActive() { return isActive; }
-    public void setIsActive(Boolean active) { isActive = active; }
+    public Boolean getArchived() { return archived; }
+    public void setArchived(Boolean archived) { this.archived = archived; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
@@ -53,3 +53,5 @@ public class UserWhitelist {
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
+
+

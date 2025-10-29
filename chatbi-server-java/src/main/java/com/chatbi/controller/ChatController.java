@@ -1,8 +1,11 @@
 package com.chatbi.controller;
 
 import com.chatbi.annotation.EnableAuth;
+import com.chatbi.interceptor.TokenInterceptor;
 import com.chatbi.model.*;
 import com.chatbi.service.ChatService;
+import com.chatbi.service.ChatMessageService;
+import com.chatbi.service.ChatSessionService;
 import com.chatbi.service.DatabaseAdminService;
 import com.chatbi.service.DatabaseManager;
 import com.chatbi.service.SchemaMetadataBuilder;
@@ -21,25 +24,34 @@ import java.util.Optional;
 @RequestMapping("/api")
 public class ChatController {
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
-    
+
     @Autowired
     private ChatService chatService;
-    
+
     @Autowired
     private DatabaseManager databaseManager;
-    
+
     @Autowired
     private DatabaseAdminService databaseAdminService;
-    
+
     @Autowired
     private SchemaMetadataBuilder metadataBuilder;
+
+    @Autowired
+    private com.chatbi.service.UserWhitelistService userWhitelistService;
+
+    @Autowired
+    private ChatSessionService chatSessionService;
+
+    @Autowired
+    private ChatMessageService chatMessageService;
 
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> root() {
         return ResponseEntity.ok(Map.of(
-            "message", "ChatBI API Server",
-            "version", "1.0.0",
-            "status", "running"
+                "message", "ChatBI API Server",
+                "version", "1.0.0",
+                "status", "running"
         ));
     }
 
@@ -48,15 +60,15 @@ public class ChatController {
         try {
             List<String> tables = databaseManager.getAllTables();
             return ResponseEntity.ok(Map.of(
-                "status", "healthy",
-                "database", "connected",
-                "tables_count", tables.size()
+                    "status", "healthy",
+                    "database", "connected",
+                    "tables_count", tables.size()
             ));
         } catch (Exception e) {
             logger.error("Health check failed: {}", e.getMessage(), e);
             return ResponseEntity.status(503).body(Map.of(
-                "status", "unhealthy",
-                "error", e.getMessage()
+                    "status", "unhealthy",
+                    "error", e.getMessage()
             ));
         }
     }
@@ -68,13 +80,72 @@ public class ChatController {
 
     @PostMapping("/chat")
     @EnableAuth  // 示例：此接口需要token验证
-    public ResponseEntity<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
+    public ResponseEntity<ChatResponse> chat(
+            @RequestHeader(value = "Login-Token", required = false) String loginToken,
+            @Valid @RequestBody ChatRequest request) {
         try {
-            logger.info("Incoming chat: conversation_id={}, message={}", 
-                request.getConversationId(), request.getMessage());
-            
+            logger.info("Incoming chat: conversation_id={}, message={}",
+                    request.getConversationId(), request.getMessage());
+
+            // Resolve userId from token
+            UserToken userToken = TokenInterceptor.parseUserTokenFromJson(loginToken);
+            if (userToken == null || userToken.getUserId() == null) {
+                return ResponseEntity.status(403).body(new ChatResponse(
+                        "用户未认证或缺少userId", null, null,
+                        request.getConversationId(), null, null
+                ));
+            }
+
+            // Resolve or create session
+            Long sessionId = null;
+            if (request.getConversationId() != null && !request.getConversationId().trim().isEmpty()) {
+                try {
+                    sessionId = Long.parseLong(request.getConversationId());
+                } catch (NumberFormatException ignored) {
+                    sessionId = null;
+                }
+            }
+
+            ChatSession session;
+            if (sessionId == null) {
+                String title = request.getMessage();
+                if (title != null && title.length() > 50) {
+                    title = title.substring(0, 50);
+                }
+                session = chatSessionService.createSession(userToken.getUserId(), title);
+            } else {
+                session = chatSessionService.getByIdForUser(sessionId, userToken.getUserId())
+                        .orElseGet(() -> chatSessionService.createSession(userToken.getUserId(), null));
+            }
+
+            // Save user message
+            chatMessageService.appendUserMessage(session, request.getMessage());
+
+            // Delegate to existing chat pipeline to get response content
             ChatResponse response = chatService.processChatMessage(request);
-            return ResponseEntity.ok(response);
+
+            // Save assistant message (with details)
+            if (response != null && response.getResponse() != null) {
+                chatMessageService.appendAssistantMessage(
+                        session,
+                        response.getResponse(),
+                        response.getSemanticSql(),
+                        response.getSqlQuery(),
+                        response.getExecutionResult()
+                );
+            }
+
+            // Ensure response carries session id as conversation_id
+            ChatResponse finalResponse = new ChatResponse(
+                    response.getResponse(),
+                    response.getSqlQuery(),
+                    response.getSemanticSql(),
+                    String.valueOf(session.getId()),
+                    response.getExecutionResult(),
+                    response.getDebugOllama()
+            );
+
+            return ResponseEntity.ok(finalResponse);
         } catch (Exception e) {
             logger.error("/api/chat failed: {}", e.getMessage(), e);
             throw new RuntimeException("处理聊天请求时发生错误: " + e.getMessage());
@@ -89,12 +160,12 @@ public class ChatController {
             DatabaseConnection selectedConnection = null;
             if (request.getDatabaseConnectionId() != null && !request.getDatabaseConnectionId().trim().isEmpty()) {
                 selectedConnection = databaseAdminService.getConnection(request.getDatabaseConnectionId())
-                    .orElse(null);
+                        .orElse(null);
                 if (selectedConnection == null) {
                     logger.warn("Database connection not found: {}", request.getDatabaseConnectionId());
                 }
             }
-            
+
             // Execute SQL query
             SQLExecutionResponse result;
             if (selectedConnection != null) {
@@ -102,12 +173,12 @@ public class ChatController {
             } else {
                 result = databaseManager.executeQuery(request.getSqlQuery());
             }
-            
+
             // Update conversation history if conversation ID is provided
             if (request.getConversationId() != null && !request.getConversationId().trim().isEmpty()) {
                 chatService.executeSqlAndUpdateResponse(request.getConversationId(), request.getSqlQuery());
             }
-            
+
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             logger.error("Error executing SQL: {}", e.getMessage(), e);
@@ -120,8 +191,8 @@ public class ChatController {
         try {
             List<Map<String, Object>> history = chatService.getConversationHistory(conversationId);
             return ResponseEntity.ok(Map.of(
-                "conversation_id", conversationId,
-                "history", history
+                    "conversation_id", conversationId,
+                    "history", history
             ));
         } catch (Exception e) {
             logger.error("Error getting conversation history: {}", e.getMessage(), e);
@@ -156,8 +227,8 @@ public class ChatController {
         try {
             List<Map<String, Object>> schema = databaseManager.getTableSchema(tableName);
             return ResponseEntity.ok(Map.of(
-                "table_name", tableName,
-                "schema", schema
+                    "table_name", tableName,
+                    "schema", schema
             ));
         } catch (Exception e) {
             logger.error("Error getting table schema: {}", e.getMessage(), e);
@@ -171,7 +242,7 @@ public class ChatController {
         try {
             List<String> tables;
             Map<String, Object> schema = new java.util.HashMap<>();
-            
+
             if (connectionId != null && !connectionId.trim().isEmpty()) {
                 // Use specific database connection
                 Optional<DatabaseConnection> connection = databaseAdminService.getConnection(connectionId);
@@ -179,9 +250,9 @@ public class ChatController {
                     return ResponseEntity.notFound().build();
                 }
                 tables = databaseAdminService.getTables(connectionId).stream()
-                    .map(TableInfo::getTableName)
-                    .collect(java.util.stream.Collectors.toList());
-                
+                        .map(TableInfo::getTableName)
+                        .collect(java.util.stream.Collectors.toList());
+
                 for (String table : tables) {
                     TableSchema tableSchema = databaseAdminService.getTableSchema(connectionId, table);
                     schema.put(table, tableSchema.getColumns());
@@ -193,7 +264,7 @@ public class ChatController {
                     schema.put(table, databaseManager.getTableSchema(table));
                 }
             }
-            
+
             return ResponseEntity.ok(Map.of("database_schema", schema));
         } catch (Exception e) {
             logger.error("Error getting full database schema: {}", e.getMessage(), e);
@@ -209,6 +280,47 @@ public class ChatController {
         } catch (Exception e) {
             logger.error("Error getting metadata: {}", e.getMessage(), e);
             throw new RuntimeException("获取元数据时发生错误: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/user/permissions")
+    public ResponseEntity<Map<String, Object>> getUserPermissions(
+            @RequestHeader(value = "Login-Token", required = false) String loginToken) {
+        try {
+            // 从请求属性中获取用户信息（由 TokenInterceptor 设置）
+            UserToken userToken = TokenInterceptor.parseUserTokenFromJson(loginToken);
+
+            if (userToken == null || userToken.getUserId() == null) {
+                return ResponseEntity.ok(Map.of(
+                        "hasDatabaseAccess", false,
+                        "canDeleteDatabase", false,
+                        "role", "READER"
+                ));
+            }
+
+            // 获取用户角色
+            String role = userWhitelistService.getUserRole(userToken.getUserId());
+            if (role == null) {
+                role = "READER"; // 默认角色
+            }
+
+            // 判断权限
+            boolean hasDatabaseAccess = "ADMIN".equals(role) || "OPERATOR".equals(role);
+            boolean canDeleteDatabase = "ADMIN".equals(role);
+
+            return ResponseEntity.ok(Map.of(
+                    "hasDatabaseAccess", hasDatabaseAccess,
+                    "canDeleteDatabase", canDeleteDatabase,
+                    "role", role
+            ));
+        } catch (Exception e) {
+            logger.error("Error getting user permissions: {}", e.getMessage(), e);
+            // 发生错误时返回默认权限（最严格）
+            return ResponseEntity.ok(Map.of(
+                    "hasDatabaseAccess", false,
+                    "canDeleteDatabase", false,
+                    "role", "READER"
+            ));
         }
     }
 }

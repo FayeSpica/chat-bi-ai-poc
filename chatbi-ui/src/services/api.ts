@@ -2,7 +2,8 @@ import axios from 'axios';
 import { 
   ChatRequest, ChatResponse, SQLExecutionRequest, SQLExecutionResult, DatabaseSchema,
   DatabaseConnection, DatabaseConnectionCreate, DatabaseConnectionUpdate, DatabaseConnectionTest,
-  TableInfo, TableSchema, CommentUpdate
+  TableInfo, TableSchema, CommentUpdate,
+  PersistedChatSession, PersistedChatMessage
 } from '../types';
 import { setLoginToken, getLoginToken } from '../utils/cookie';
 
@@ -96,6 +97,29 @@ export const chatAPI = {
   clearConversation: async (conversationId: string) => {
     const response = await api.delete(`/conversation/${conversationId}`);
     return response.data;
+  },
+};
+
+// 会话与历史 API
+export const sessionAPI = {
+  listSessions: async (): Promise<PersistedChatSession[]> => {
+    const res = await api.get('/sessions');
+    return res.data;
+  },
+  createSession: async (title?: string): Promise<PersistedChatSession> => {
+    const res = await api.post('/sessions', title ? { title } : {});
+    return res.data;
+  },
+  renameSession: async (id: number, title: string): Promise<PersistedChatSession> => {
+    const res = await api.patch(`/sessions/${id}`, { title });
+    return res.data;
+  },
+  deleteSession: async (id: number): Promise<void> => {
+    await api.delete(`/sessions/${id}`);
+  },
+  getSessionMessages: async (id: number): Promise<PersistedChatMessage[]> => {
+    const res = await api.get(`/sessions/${id}/messages`);
+    return res.data;
   },
 };
 

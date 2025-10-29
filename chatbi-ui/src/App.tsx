@@ -1,29 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, message, Spin, Alert, Button } from 'antd';
-import { ReloadOutlined, DatabaseOutlined, SettingOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { Layout, message, Spin, Button, Drawer } from 'antd';
+import { ReloadOutlined, SettingOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import ChatMessage from './components/ChatMessage';
 import ChatInput from './components/ChatInput';
-import DatabaseSchema from './components/DatabaseSchema';
 import DatabaseAdmin from './components/DatabaseAdmin';
+import DatabaseSchema from './components/DatabaseSchema';
 import DatabaseSelector from './components/DatabaseSelector';
+import SessionList from './components/SessionList';
 import AccessDenied from './components/AccessDenied';
-import { chatAPI, systemAPI, databaseAdminAPI, setAuthErrorHandler } from './services/api';
-import { ChatMessage as ChatMessageType, ChatRequest, ChatResponse, DatabaseConnection } from './types';
+import { chatAPI, systemAPI, databaseAdminAPI, setAuthErrorHandler, sessionAPI } from './services/api';
+import { ChatMessage as ChatMessageType, ChatRequest, ChatResponse, PersistedChatMessage } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const { Header, Content, Sider } = Layout;
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
-  const [conversationId, setConversationId] = useState<string>(uuidv4());
+  const [conversationId, setConversationId] = useState<string>('');
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [systemStatus, setSystemStatus] = useState<'checking' | 'healthy' | 'error'>('checking');
-  const [systemError, setSystemError] = useState<string | null>(null);
+  
   const [showDatabaseAdmin, setShowDatabaseAdmin] = useState(false);
-  const [refreshDatabaseSchema, setRefreshDatabaseSchema] = useState(0);
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | undefined>();
-  const [availableConnections, setAvailableConnections] = useState<DatabaseConnection[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(true); // 默认折叠
   const [accessDenied, setAccessDenied] = useState<{ show: boolean; status: 401 | 403 }>({ show: false, status: 403 });
   const [userPermissions, setUserPermissions] = useState<{ hasDatabaseAccess: boolean; canDeleteDatabase: boolean; role: string }>({
@@ -32,6 +32,7 @@ const App: React.FC = () => {
     role: 'READER'
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showSchemaDrawer, setShowSchemaDrawer] = useState(false);
 
   // 检查系统状态
   const checkSystemStatus = async () => {
@@ -39,10 +40,9 @@ const App: React.FC = () => {
     try {
       await systemAPI.healthCheck();
       setSystemStatus('healthy');
-      setSystemError(null);
+      
     } catch (error: any) {
       setSystemStatus('error');
-      setSystemError(error.message || '系统连接失败');
     }
   };
 
@@ -66,7 +66,6 @@ const App: React.FC = () => {
   const loadDatabaseConnections = async () => {
     try {
       const connections = await databaseAdminAPI.getConnections();
-      setAvailableConnections(connections);
       
       // 设置默认选择的数据库连接（第一个活跃的连接或第一个连接）
       const activeConnection = connections.find(conn => conn.is_active) || connections[0];
@@ -82,8 +81,7 @@ const App: React.FC = () => {
   // 处理数据库选择变化
   const handleDatabaseChange = (connectionId: string) => {
     setSelectedDatabaseId(connectionId);
-    // 触发数据库结构刷新
-    setRefreshDatabaseSchema(prev => prev + 1);
+    
   };
 
   // 设置权限错误处理
@@ -98,22 +96,55 @@ const App: React.FC = () => {
     loadUserPermissions();
     loadDatabaseConnections();
     
-    // 添加欢迎消息
+    // 尝试恢复上次会话
+    const lastSession = localStorage.getItem('chatbi:lastSessionId');
+    if (lastSession) {
+      const idNum = parseInt(lastSession, 10);
+      if (!Number.isNaN(idNum)) {
+        handleSelectSession(idNum);
+        return;
+      }
+    }
+    // 无会话时显示欢迎消息
     const welcomeMessage: ChatMessageType = {
       id: uuidv4(),
       role: 'assistant',
-      content: `欢迎使用ChatBI智能聊天系统！
-
-我可以帮您将自然语言转换为SQL查询语句。请告诉我您想要查询什么数据。
-
-例如：
-- [查询所有用户的订单总金额](#query)
-- [统计每个月的销售数量](#query)
-- [找出购买最多的前10个商品](#query)`,
+      content: `欢迎使用ChatBI智能聊天系统！\n\n我可以帮您将自然语言转换为SQL查询语句。请告诉我您想要查询什么数据。`,
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
   }, []);
+  const loadSessionMessages = async (sessionId: number) => {
+    const list: PersistedChatMessage[] = await sessionAPI.getSessionMessages(sessionId);
+    const mapped: ChatMessageType[] = list.map(m => {
+      let parsedSemantic: any = m.semanticSql;
+      if (typeof parsedSemantic === 'string') {
+        try { parsedSemantic = JSON.parse(parsedSemantic); } catch {}
+      }
+      let parsedExec: any = m.executionResult;
+      if (typeof parsedExec === 'string') {
+        try { parsedExec = JSON.parse(parsedExec); } catch {}
+      }
+      return {
+        id: String(m.id),
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        timestamp: new Date(m.createdAt),
+        semantic_sql: parsedSemantic,
+        sql_query: m.sqlQuery || undefined,
+        execution_result: parsedExec,
+      } as ChatMessageType;
+    });
+    setMessages(mapped);
+  };
+
+  const handleSelectSession = async (sessionId: number) => {
+    setCurrentSessionId(sessionId);
+    setConversationId(String(sessionId));
+    localStorage.setItem('chatbi:lastSessionId', String(sessionId));
+    await loadSessionMessages(sessionId);
+  };
+
 
   // 自动滚动到底部
   useEffect(() => {
@@ -140,10 +171,20 @@ const App: React.FC = () => {
     try {
       const requestPayload: ChatRequest = {
         message: content,
-        conversation_id: conversationId,
+        conversation_id: currentSessionId ? String(currentSessionId) : undefined,
         database_connection_id: selectedDatabaseId
       };
       const response: ChatResponse = await chatAPI.sendMessage(requestPayload);
+
+      // 同步后端返回的会话ID
+      if (response.conversation_id) {
+        const sid = parseInt(response.conversation_id, 10);
+        if (!Number.isNaN(sid)) {
+          setCurrentSessionId(sid);
+          setConversationId(response.conversation_id);
+          localStorage.setItem('chatbi:lastSessionId', String(sid));
+        }
+      }
 
       // 添加助手回复
       const assistantMessage: ChatMessageType = {
@@ -221,36 +262,28 @@ const App: React.FC = () => {
 
   const handleClearChat = async () => {
     try {
-      await chatAPI.clearConversation(conversationId);
-      setMessages([] as ChatMessageType[]);
-      setConversationId(uuidv4());
-      
-      // 重新添加欢迎消息
-      const welcomeMessage: ChatMessageType = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: '对话已清空。我可以帮您将自然语言转换为SQL查询语句，请告诉我您想要查询什么数据。',
-        timestamp: new Date()
-      };
-      setMessages([welcomeMessage]);
-      
-      message.success('对话已清空');
+      const created = await sessionAPI.createSession('新的会话');
+      await handleSelectSession(created.id);
+      message.success('已新建会话');
     } catch (error: any) {
-      message.error('清空对话失败: ' + (error.message || '未知错误'));
+      message.error('新建会话失败: ' + (error.message || '未知错误'));
     }
   };
 
-  const handleSelectTable = (tableName: string) => {
-    const suggestionMessage = `我想查看 ${tableName} 表的数据，请帮我生成查询语句`;
-    handleSendMessage(suggestionMessage);
-  };
+  
+
+  
 
   const handleDatabaseAdminClose = () => {
     setShowDatabaseAdmin(false);
     // 重新加载数据库连接列表
     loadDatabaseConnections();
-    // 触发数据库结构刷新
-    setRefreshDatabaseSchema(prev => prev + 1);
+    
+  };
+  const handleSelectTable = (tableName: string) => {
+    const suggestionMessage = `我想查看 ${tableName} 表的数据，请帮我生成查询语句 默认查询10条`;
+    handleSendMessage(suggestionMessage);
+    setShowSchemaDrawer(false);
   };
 
   const renderSystemStatus = () => {
@@ -338,6 +371,12 @@ const App: React.FC = () => {
             onDatabaseChange={handleDatabaseChange}
             disabled={isLoading || systemStatus !== 'healthy'}
           />
+          <Button 
+            onClick={() => setShowSchemaDrawer(true)}
+            disabled={!selectedDatabaseId || isLoading || systemStatus !== 'healthy'}
+          >
+            数据库结构
+          </Button>
           {userPermissions.hasDatabaseAccess && (
             <Button 
               type="primary" 
@@ -386,10 +425,10 @@ const App: React.FC = () => {
               padding: 0
             }}
           />
-          <DatabaseSchema 
-            key={refreshDatabaseSchema}
-            onSelectTable={handleSelectTable}
-            selectedDatabaseId={selectedDatabaseId}
+          <SessionList
+            selectedSessionId={currentSessionId}
+            onSelect={handleSelectSession}
+            canDelete={userPermissions.role === 'ADMIN'}
           />
         </Sider>
 
@@ -433,6 +472,19 @@ const App: React.FC = () => {
           canDeleteDatabase={userPermissions.canDeleteDatabase}
         />
       )}
+      <Drawer
+        placement="right"
+        width={420}
+        open={showSchemaDrawer}
+        onClose={() => setShowSchemaDrawer(false)}
+        destroyOnClose
+        title="数据库结构"
+      >
+        <DatabaseSchema 
+          onSelectTable={handleSelectTable}
+          selectedDatabaseId={selectedDatabaseId}
+        />
+      </Drawer>
     </Layout>
   );
 };

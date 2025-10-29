@@ -77,6 +77,14 @@ public class TokenInterceptor implements HandlerInterceptor {
             // 白名单校验：仅允许白名单用户访问
             // 优先解析JSON格式的token为UserToken
             UserToken userToken = parseUserTokenFromJson(token);
+            if (userToken == null || userToken.getUserId() == null) {
+                logger.warn("Forbidden: invalid token format for request: {} {}", request.getMethod(), request.getRequestURI());
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"error\":\"用户不在白名单（需提供userId）\",\"code\":403}");
+                return false;
+            }
+            
             boolean allowed = userWhitelistService.isWhitelisted(userToken.getUserId());
             if (!allowed) {
                 logger.warn("Forbidden: user not in whitelist for request: {} {}", request.getMethod(), request.getRequestURI());
@@ -139,7 +147,7 @@ public class TokenInterceptor implements HandlerInterceptor {
      * - userName / username / name
      * - roleNames (数组或逗号分隔字符串) / roles
      */
-    private UserToken parseUserTokenFromJson(String token) {
+    public static UserToken parseUserTokenFromJson(String token) {
         if (token == null || token.trim().isEmpty()) {
             return null;
         }

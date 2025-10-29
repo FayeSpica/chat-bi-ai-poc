@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Input, Button, Space, message } from 'antd';
-import { SendOutlined, ClearOutlined } from '@ant-design/icons';
+import { SendOutlined, PlusOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
 
@@ -67,11 +67,11 @@ const ChatInput: React.FC<ChatInputProps> = ({
         
         <Space style={{ justifyContent: 'flex-end', width: '100%' }}>
           <Button
-            icon={<ClearOutlined />}
+            icon={<PlusOutlined />}
             onClick={handleClear}
             disabled={disabled}
           >
-            清空对话
+            新建会话
           </Button>
           
           <Button
