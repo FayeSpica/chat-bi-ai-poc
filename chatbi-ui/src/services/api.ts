@@ -18,8 +18,8 @@ const api = axios.create({
 });
 
 const sampleToken = {
-  userId: 'user3',
-  userName: 'user3',
+  userId: 'user2',
+  userName: 'user2',
   roleNames: ['ADMIN', 'READER', 'OPERATOR']
 };
 setLoginToken(sampleToken);

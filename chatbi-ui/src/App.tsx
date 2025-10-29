@@ -33,6 +33,7 @@ const App: React.FC = () => {
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showSchemaDrawer, setShowSchemaDrawer] = useState(false);
+  const [tableNames, setTableNames] = useState<string[]>([]);
 
   // 检查系统状态
   const checkSystemStatus = async () => {
@@ -70,7 +71,17 @@ const App: React.FC = () => {
       // 设置默认选择的数据库连接（第一个活跃的连接或第一个连接）
       const activeConnection = connections.find(conn => conn.is_active) || connections[0];
       if (activeConnection) {
-        setSelectedDatabaseId(activeConnection.id);
+        if (activeConnection.id) {
+          setSelectedDatabaseId(activeConnection.id);
+          // 加载该连接的表名
+          try {
+            const tables = await databaseAdminAPI.getTables(activeConnection.id);
+            setTableNames(Array.isArray(tables) ? tables.map(t => t.table_name) : []);
+          } catch {}
+        } else {
+          setSelectedDatabaseId(undefined);
+          setTableNames([]);
+        }
       }
     } catch (error: any) {
       console.error('加载数据库连接失败:', error);
@@ -81,7 +92,15 @@ const App: React.FC = () => {
   // 处理数据库选择变化
   const handleDatabaseChange = (connectionId: string) => {
     setSelectedDatabaseId(connectionId);
-    
+    // 切换连接时更新表名
+    (async () => {
+      try {
+        const tables = await databaseAdminAPI.getTables(connectionId);
+        setTableNames(Array.isArray(tables) ? tables.map(t => t.table_name) : []);
+      } catch {
+        setTableNames([]);
+      }
+    })();
   };
 
   // 设置权限错误处理
@@ -96,23 +115,37 @@ const App: React.FC = () => {
     loadUserPermissions();
     loadDatabaseConnections();
     
-    // 尝试恢复上次会话
-    const lastSession = localStorage.getItem('chatbi:lastSessionId');
-    if (lastSession) {
-      const idNum = parseInt(lastSession, 10);
-      if (!Number.isNaN(idNum)) {
-        handleSelectSession(idNum);
-        return;
+    // 会话初始化：优先恢复上次会话；否则若有会话则选第一个；若没有则自动创建
+    (async () => {
+      try {
+        const lastSession = localStorage.getItem('chatbi:lastSessionId');
+        if (lastSession) {
+          const idNum = parseInt(lastSession, 10);
+          if (!Number.isNaN(idNum)) {
+            await handleSelectSession(idNum);
+            return;
+          }
+        }
+
+        const sessions = await sessionAPI.listSessions();
+        if (sessions && sessions.length > 0) {
+          await handleSelectSession(sessions[0].id);
+          return;
+        }
+
+        const created = await sessionAPI.createSession('新的会话');
+        await handleSelectSession(created.id);
+      } catch (e) {
+        // 失败时回退到欢迎消息
+        const welcomeMessage: ChatMessageType = {
+          id: uuidv4(),
+          role: 'assistant',
+          content: `欢迎使用ChatBI智能聊天系统！\n\n我可以帮您将自然语言转换为SQL查询语句。请告诉我您想要查询什么数据。`,
+          timestamp: new Date()
+        };
+        setMessages([welcomeMessage]);
       }
-    }
-    // 无会话时显示欢迎消息
-    const welcomeMessage: ChatMessageType = {
-      id: uuidv4(),
-      role: 'assistant',
-      content: `欢迎使用ChatBI智能聊天系统！\n\n我可以帮您将自然语言转换为SQL查询语句。请告诉我您想要查询什么数据。`,
-      timestamp: new Date()
-    };
-    setMessages([welcomeMessage]);
+    })();
   }, []);
   const loadSessionMessages = async (sessionId: number) => {
     const list: PersistedChatMessage[] = await sessionAPI.getSessionMessages(sessionId);
@@ -135,7 +168,32 @@ const App: React.FC = () => {
         execution_result: parsedExec,
       } as ChatMessageType;
     });
-    setMessages(mapped);
+    // 基于当前表名生成联动示例
+    const examples: string[] = (() => {
+      if (!tableNames || tableNames.length === 0) {
+        return [
+          '- [查询最近10条订单](#query)',
+          '- [统计每个城市的用户数量](#query)',
+          '- [查看任意表的前10行数据](#query)',
+        ];
+      }
+      const picks = tableNames.slice(0, 3);
+      return picks.map(name => `- [查看 ${name} 表的前10行数据](#query)`);
+    })();
+    const welcomeMessage: ChatMessageType = {
+      id: uuidv4(),
+      role: 'assistant',
+      content: [
+        '欢迎使用ChatBI智能聊天系统！',
+        '',
+        '我可以把自然语言转换为可执行的 SQL，并展示结果。',
+        '',
+        '你可以试试这些示例：',
+        ...examples,
+      ].join('\n'),
+      timestamp: new Date(),
+    };
+    setMessages([welcomeMessage, ...mapped]);
   };
 
   const handleSelectSession = async (sessionId: number) => {
