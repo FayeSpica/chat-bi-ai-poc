@@ -189,7 +189,7 @@ const DatabaseSchema: React.FC<DatabaseSchemaProps> = ({ onSelectTable, selected
         </Space>
       }
       style={{ height: '100%' }}
-      bodyStyle={{ padding: '12px' }}
+      styles={{ body: { padding: '12px' } }}
     >
       <Tree
         treeData={renderTreeData()}
