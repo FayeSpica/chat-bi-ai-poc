@@ -185,4 +185,5 @@ export interface PersistedChatMessage {
   semanticSql?: any;
   sqlQuery?: string;
   executionResult?: any;
+  debugInfo?: any;
 }

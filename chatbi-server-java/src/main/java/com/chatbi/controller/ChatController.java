@@ -131,7 +131,8 @@ public class ChatController {
                         response.getResponse(),
                         response.getSemanticSql(),
                         response.getSqlQuery(),
-                        response.getExecutionResult()
+                        response.getExecutionResult(),
+                        response.getDebugOllama()
                 );
             }
 
@@ -177,6 +178,17 @@ public class ChatController {
             // Update conversation history if conversation ID is provided
             if (request.getConversationId() != null && !request.getConversationId().trim().isEmpty()) {
                 chatService.executeSqlAndUpdateResponse(request.getConversationId(), request.getSqlQuery());
+                try {
+                    Long sid = Long.parseLong(request.getConversationId());
+                    chatSessionService.getById(sid).ifPresent(s -> {
+                        java.util.Map<String, Object> resultMap = new java.util.HashMap<>();
+                        resultMap.put("success", result.isSuccess());
+                        resultMap.put("data", result.getData());
+                        resultMap.put("error", result.getError());
+                        resultMap.put("row_count", result.getRowCount());
+                        chatMessageService.appendExecutionResultToLastAssistant(s, resultMap);
+                    });
+                } catch (NumberFormatException ignored) {}
             }
 
             return ResponseEntity.ok(result);

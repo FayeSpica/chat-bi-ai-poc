@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS chat_message (
   semantic_sql LONGTEXT NULL,
   sql_query LONGTEXT NULL,
   execution_result LONGTEXT NULL,
+  debug_info LONGTEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_chat_message_session_id (session_id),
   KEY idx_chat_message_created_at (created_at),

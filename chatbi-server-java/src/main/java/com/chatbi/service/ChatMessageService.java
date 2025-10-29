@@ -48,7 +48,7 @@ public class ChatMessageService {
         return saved;
     }
 
-    public ChatMessage appendAssistantMessage(ChatSession session, String content, SemanticSQL semanticSQL, String sqlQuery, java.util.Map<String, Object> executionResult) {
+    public ChatMessage appendAssistantMessage(ChatSession session, String content, SemanticSQL semanticSQL, String sqlQuery, java.util.Map<String, Object> executionResult, java.util.Map<String, Object> debugInfo) {
         ChatMessage message = new ChatMessage();
         message.setSession(session);
         message.setRole("assistant");
@@ -64,10 +64,30 @@ public class ChatMessageService {
             if (executionResult != null) {
                 message.setExecutionResult(OBJECT_MAPPER.writeValueAsString(executionResult));
             }
+            if (debugInfo != null) {
+                message.setDebugInfo(OBJECT_MAPPER.writeValueAsString(debugInfo));
+            }
         } catch (Exception ignored) {}
         ChatMessage saved = chatMessageRepository.save(message);
         chatSessionService.touchUpdatedAt(session);
         return saved;
+    }
+
+    public void appendExecutionResultToLastAssistant(ChatSession session, java.util.Map<String, Object> executionResult) {
+        List<ChatMessage> messages = chatMessageRepository.findBySessionOrderByCreatedAtAsc(session);
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            ChatMessage msg = messages.get(i);
+            if ("assistant".equals(msg.getRole())) {
+                try {
+                    if (executionResult != null) {
+                        msg.setExecutionResult(OBJECT_MAPPER.writeValueAsString(executionResult));
+                    }
+                } catch (Exception ignored) {}
+                chatMessageRepository.save(msg);
+                chatSessionService.touchUpdatedAt(session);
+                break;
+            }
+        }
     }
 }
 

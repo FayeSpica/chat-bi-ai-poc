@@ -40,6 +40,10 @@ public class ChatMessage {
     @Column(name = "execution_result", columnDefinition = "LONGTEXT")
     private String executionResult; // JSON string
 
+    @Lob
+    @Column(name = "debug_info", columnDefinition = "LONGTEXT")
+    private String debugInfo; // JSON string
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -63,6 +67,9 @@ public class ChatMessage {
 
     public String getExecutionResult() { return executionResult; }
     public void setExecutionResult(String executionResult) { this.executionResult = executionResult; }
+
+    public String getDebugInfo() { return debugInfo; }
+    public void setDebugInfo(String debugInfo) { this.debugInfo = debugInfo; }
 }
 
 

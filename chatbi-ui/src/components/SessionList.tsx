@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { List, Button, Input, Modal, Space, Typography } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { PersistedChatSession } from '../types';
 import { sessionAPI } from '../services/api';
 
@@ -30,11 +30,7 @@ const SessionList: React.FC<SessionListProps> = ({ selectedSessionId, onSelect, 
     loadSessions();
   }, []);
 
-  const handleCreate = async () => {
-    const created = await sessionAPI.createSession('新的会话');
-    setSessions(prev => [created, ...prev]);
-    onSelect(created.id);
-  };
+  
 
   const handleRename = async () => {
     if (!renaming) return;
@@ -51,9 +47,6 @@ const SessionList: React.FC<SessionListProps> = ({ selectedSessionId, onSelect, 
 
   return (
     <div style={{ padding: 16 }}>
-      <Space style={{ marginBottom: 12 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>新建会话</Button>
-      </Space>
       <List
         loading={loading}
         dataSource={sessions}

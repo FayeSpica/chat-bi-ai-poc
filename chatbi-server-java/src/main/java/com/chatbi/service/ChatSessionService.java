@@ -33,6 +33,10 @@ public class ChatSessionService {
         return chatSessionRepository.findByIdAndUserId(id, userId);
     }
 
+    public Optional<ChatSession> getById(Long id) {
+        return chatSessionRepository.findById(id);
+    }
+
     public Optional<ChatSession> renameSession(Long id, String userId, String title) {
         Optional<ChatSession> optional = chatSessionRepository.findByIdAndUserId(id, userId);
         optional.ifPresent(s -> {

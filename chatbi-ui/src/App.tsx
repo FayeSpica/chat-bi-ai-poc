@@ -34,6 +34,7 @@ const App: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showSchemaDrawer, setShowSchemaDrawer] = useState(false);
   const [tableNames, setTableNames] = useState<string[]>([]);
+  const [sessionListRefresh, setSessionListRefresh] = useState(0);
 
   // 检查系统状态
   const checkSystemStatus = async () => {
@@ -158,6 +159,20 @@ const App: React.FC = () => {
       if (typeof parsedExec === 'string') {
         try { parsedExec = JSON.parse(parsedExec); } catch {}
       }
+      let parsedDebug: any = m.debugInfo;
+      if (typeof parsedDebug === 'string') {
+        try { parsedDebug = JSON.parse(parsedDebug); } catch {}
+      }
+      // 兼容历史存储：如果 debugInfo 直接是 ollama 字段集合，则包一层 { ollama: ... }
+      let normalizedDebug: any = parsedDebug;
+      if (parsedDebug && typeof parsedDebug === 'object' && !('ollama' in parsedDebug)) {
+        const possibleOllamaKeys = ['provider','model','base_url','prompt','raw_response','error'];
+        const hasOllamaShape = possibleOllamaKeys.some(k => k in parsedDebug);
+        if (hasOllamaShape) {
+          normalizedDebug = { ollama: parsedDebug };
+        }
+      }
+      const debug_info = normalizedDebug || (parsedExec ? { sql_execution: parsedExec } : undefined);
       return {
         id: String(m.id),
         role: m.role as 'user' | 'assistant',
@@ -166,6 +181,7 @@ const App: React.FC = () => {
         semantic_sql: parsedSemantic,
         sql_query: m.sqlQuery || undefined,
         execution_result: parsedExec,
+        debug_info,
       } as ChatMessageType;
     });
     // 基于当前表名生成联动示例
@@ -463,7 +479,13 @@ const App: React.FC = () => {
           <Button
             type="text"
             icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onClick={() => {
+              const willExpand = sidebarCollapsed;
+              setSidebarCollapsed(!sidebarCollapsed);
+              if (willExpand) {
+                setSessionListRefresh(prev => prev + 1);
+              }
+            }}
             style={{
               position: 'absolute',
               right: sidebarCollapsed ? -36 : 8,
@@ -484,6 +506,7 @@ const App: React.FC = () => {
             }}
           />
           <SessionList
+            key={sessionListRefresh}
             selectedSessionId={currentSessionId}
             onSelect={handleSelectSession}
             canDelete={userPermissions.role === 'ADMIN'}
