@@ -26,6 +26,11 @@ const App: React.FC = () => {
   const [availableConnections, setAvailableConnections] = useState<DatabaseConnection[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(true); // 默认折叠
   const [accessDenied, setAccessDenied] = useState<{ show: boolean; status: 401 | 403 }>({ show: false, status: 403 });
+  const [userPermissions, setUserPermissions] = useState<{ hasDatabaseAccess: boolean; canDeleteDatabase: boolean; role: string }>({
+    hasDatabaseAccess: false,
+    canDeleteDatabase: false,
+    role: 'READER'
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 检查系统状态
@@ -38,6 +43,22 @@ const App: React.FC = () => {
     } catch (error: any) {
       setSystemStatus('error');
       setSystemError(error.message || '系统连接失败');
+    }
+  };
+
+  // 加载用户权限
+  const loadUserPermissions = async () => {
+    try {
+      const permissions = await systemAPI.getUserPermissions();
+      setUserPermissions(permissions);
+    } catch (error: any) {
+      console.error('加载用户权限失败:', error);
+      // 失败时使用默认权限（最严格）
+      setUserPermissions({
+        hasDatabaseAccess: false,
+        canDeleteDatabase: false,
+        role: 'READER'
+      });
     }
   };
 
@@ -74,6 +95,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     checkSystemStatus();
+    loadUserPermissions();
     loadDatabaseConnections();
     
     // 添加欢迎消息
@@ -316,13 +338,15 @@ const App: React.FC = () => {
             onDatabaseChange={handleDatabaseChange}
             disabled={isLoading || systemStatus !== 'healthy'}
           />
-          <Button 
-            type="primary" 
-            icon={<SettingOutlined />}
-            onClick={() => setShowDatabaseAdmin(true)}
-          >
-            数据库管理
-          </Button>
+          {userPermissions.hasDatabaseAccess && (
+            <Button 
+              type="primary" 
+              icon={<SettingOutlined />}
+              onClick={() => setShowDatabaseAdmin(true)}
+            >
+              数据库管理
+            </Button>
+          )}
           <div style={{ width: '150px' }}>
             {renderSystemStatus()}
           </div>
@@ -404,7 +428,10 @@ const App: React.FC = () => {
 
       {/* 数据库管理弹窗 */}
       {showDatabaseAdmin && (
-        <DatabaseAdmin onClose={handleDatabaseAdminClose} />
+        <DatabaseAdmin 
+          onClose={handleDatabaseAdminClose}
+          canDeleteDatabase={userPermissions.canDeleteDatabase}
+        />
       )}
     </Layout>
   );

@@ -8,9 +8,11 @@ import './DatabaseAdmin.css';
 
 interface DatabaseAdminProps {
   onClose: () => void;
+  canDeleteDatabase?: boolean;
 }
 
-const DatabaseAdmin: React.FC<DatabaseAdminProps> = ({ onClose }) => {
+const DatabaseAdmin: React.FC<DatabaseAdminProps> = (props) => {
+  const { onClose, canDeleteDatabase = false } = props;
   const [activeTab, setActiveTab] = useState<'connections' | 'metadata'>('connections');
   const [connections, setConnections] = useState<DatabaseConnection[]>([]);
   const [selectedConnection, setSelectedConnection] = useState<DatabaseConnection | null>(null);
@@ -136,6 +138,7 @@ const DatabaseAdmin: React.FC<DatabaseAdminProps> = ({ onClose }) => {
         <ConnectionManager 
           connections={connections}
           onConnectionsChange={loadConnections}
+          canDeleteDatabase={canDeleteDatabase}
         />
       )}
 
@@ -159,9 +162,10 @@ const DatabaseAdmin: React.FC<DatabaseAdminProps> = ({ onClose }) => {
 interface ConnectionManagerProps {
   connections: DatabaseConnection[];
   onConnectionsChange: () => void;
+  canDeleteDatabase?: boolean;
 }
 
-const ConnectionManager: React.FC<ConnectionManagerProps> = ({ connections, onConnectionsChange }) => {
+const ConnectionManager: React.FC<ConnectionManagerProps> = ({ connections, onConnectionsChange, canDeleteDatabase = false }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingConnection, setEditingConnection] = useState<DatabaseConnection | null>(null);
   const [testingConnection, setTestingConnection] = useState<string | null>(null);
@@ -293,6 +297,8 @@ const ConnectionManager: React.FC<ConnectionManagerProps> = ({ connections, onCo
               <button 
                 className="btn btn-sm btn-danger"
                 onClick={() => handleDeleteConnection(connection.id!)}
+                disabled={!canDeleteDatabase}
+                title={!canDeleteDatabase ? '需要 ADMIN 权限才能删除数据库连接' : undefined}
               >
                 删除
               </button>

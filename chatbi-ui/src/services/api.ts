@@ -17,8 +17,8 @@ const api = axios.create({
 });
 
 const sampleToken = {
-  userId: 'user1',
-  userName: 'user1',
+  userId: 'user3',
+  userName: 'user3',
   roleNames: ['ADMIN', 'READER', 'OPERATOR']
 };
 setLoginToken(sampleToken);
@@ -124,6 +124,12 @@ export const systemAPI = {
   // 健康检查
   healthCheck: async () => {
     const response = await api.get('/health', { timeout: 10000 });
+    return response.data;
+  },
+  
+  // 获取用户权限
+  getUserPermissions: async (): Promise<{ hasDatabaseAccess: boolean; canDeleteDatabase: boolean; role: string }> => {
+    const response = await api.get('/user/permissions');
     return response.data;
   },
 };
