@@ -19,4 +19,9 @@ public @interface EnableAuth {
      * 如果为false，则token不存在时不会抛出异常，但仍会验证token的有效性
      */
     boolean required() default true;
+
+    /**
+     * 允许访问的角色名称列表（默认为空表示不限制角色）
+     */
+    String[] roleNames() default {};
 }
