@@ -52,9 +52,24 @@ public class ChatService {
             userMessage.put("content", request.getMessage());
             conversations.get(conversationId).add(userMessage);
             
-            // Convert natural language to semantic SQL
+            // Convert natural language to semantic SQL (with short context: include previous one user input if exists)
             logger.info("Converting NL to semantic SQL: cid={}", conversationId);
-            SemanticSQL semanticSQL = semanticSQLConverter.convertToSemanticSQL(request.getMessage(), selectedConnection);
+            String shortContextInput = request.getMessage();
+            List<Map<String, Object>> history = conversations.get(conversationId);
+            if (history != null && history.size() >= 2) {
+                // Find the most recent previous user message before the current one
+                for (int i = history.size() - 2; i >= 0; i--) {
+                    Object role = history.get(i).get("role");
+                    if (role != null && "user".equals(role.toString())) {
+                        Object prevContent = history.get(i).get("content");
+                        if (prevContent != null) {
+                            shortContextInput = "上一次用户输入（供参考）：" + prevContent.toString() + "\n当前用户输入：" + request.getMessage();
+                        }
+                        break;
+                    }
+                }
+            }
+            SemanticSQL semanticSQL = semanticSQLConverter.convertToSemanticSQL(shortContextInput, selectedConnection);
             Map<String, Object> debugOllama = semanticSQLConverter.getLastDebug();
             
             // Generate MySQL SQL statement

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Tag, Button, Table, Space, Tooltip, Typography, Segmented, Select, Divider, Collapse } from 'antd';
+import { Card, Tag, Button, Table, Space, Tooltip, Typography, Segmented, Select, Divider, Collapse, Modal } from 'antd';
 import { PlayCircleOutlined, CodeOutlined, DatabaseOutlined } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -23,6 +23,18 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   isExecuting = false 
 }) => {
   const isUser = message.role === 'user';
+
+  const [fullscreenVisible, setFullscreenVisible] = useState(false);
+  const [fullscreenTitle, setFullscreenTitle] = useState<string>('');
+  const [fullscreenLanguage, setFullscreenLanguage] = useState<'markdown' | 'json' | 'sql'>('markdown');
+  const [fullscreenData, setFullscreenData] = useState<any>('');
+
+  const openFullscreen = (title: string, language: 'markdown' | 'json' | 'sql', data: any) => {
+    setFullscreenTitle(title);
+    setFullscreenLanguage(language);
+    setFullscreenData(data);
+    setFullscreenVisible(true);
+  };
 
   const renderSemanticSQL = (semanticSQL: any) => {
     if (!semanticSQL) return null;
@@ -347,16 +359,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         <Collapse size="small">
           <Collapse.Panel header="调试信息" key="debug">
             <Space direction="vertical" style={{ width: '100%' }} size="small">
-              {message.debug_info.request && (
-                <Card size="small" title="请求参数">
-                  {jsonBlock(message.debug_info.request)}
-                </Card>
-              )}
-              {message.debug_info.response && (
-                <Card size="small" title="模型响应">
-                  {jsonBlock(message.debug_info.response)}
-                </Card>
-              )}
+              {/* 已移除 请求参数 和 模型响应 显示 */}
               {message.debug_info.ollama && (
                 <Card size="small" title="Ollama调试">
                   <Space direction="vertical" style={{ width: '100%' }} size="small">
@@ -370,7 +373,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                       <Text type="secondary" style={{ fontSize: 12 }}>服务地址: {message.debug_info.ollama.base_url}</Text>
                     )}
                     {message.debug_info.ollama.prompt && (
-                      <Card size="small" type="inner" title="提示词 (Prompt)">
+                      <Card 
+                        size="small" 
+                        type="inner" 
+                        title="提示词 (Prompt)"
+                        extra={(
+                          <Button type="link" size="small" onClick={() => openFullscreen('提示词 (Prompt)', 'markdown', message.debug_info.ollama.prompt)}>
+                            全屏查看
+                          </Button>
+                        )}
+                      >
                         <SyntaxHighlighter
                           language="markdown"
                           style={tomorrow}
@@ -381,7 +393,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                       </Card>
                     )}
                     {message.debug_info.ollama.raw_response && (
-                      <Card size="small" type="inner" title="模型原始回复">
+                      <Card 
+                        size="small" 
+                        type="inner" 
+                        title="模型原始回复"
+                        extra={(
+                          <Button type="link" size="small" onClick={() => openFullscreen('模型原始回复', 'markdown', String(message.debug_info.ollama.raw_response))}>
+                            全屏查看
+                          </Button>
+                        )}
+                      >
                         <SyntaxHighlighter
                           language="markdown"
                           style={tomorrow}
@@ -398,7 +419,15 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 </Card>
               )}
               {'sql_execution' in (message.debug_info || {}) && (
-                <Card size="small" title="SQL执行结果">
+                <Card 
+                  size="small" 
+                  title="SQL执行结果"
+                  extra={(
+                    <Button type="link" size="small" onClick={() => openFullscreen('SQL执行结果', 'json', message.debug_info.sql_execution)}>
+                      全屏查看
+                    </Button>
+                  )}
+                >
                   {jsonBlock(message.debug_info.sql_execution)}
                 </Card>
               )}
@@ -482,6 +511,26 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
           {message.timestamp.toLocaleTimeString()}
         </div>
       </div>
+      <Modal
+        open={fullscreenVisible}
+        onCancel={() => setFullscreenVisible(false)}
+        footer={null}
+        width="100%"
+        centered
+        style={{ top: 0, padding: 0 }}
+        bodyStyle={{ height: '80vh', overflow: 'auto', padding: 0 }}
+        title={fullscreenTitle}
+      >
+        <div style={{ height: '100%', overflow: 'auto' }}>
+          <SyntaxHighlighter
+            language={fullscreenLanguage}
+            style={tomorrow}
+            customStyle={{ margin: 0, fontSize: '12px', minHeight: '100%' }}
+          >
+            {typeof fullscreenData === 'string' ? fullscreenData : JSON.stringify(fullscreenData, null, 2)}
+          </SyntaxHighlighter>
+        </div>
+      </Modal>
     </div>
   );
 };
