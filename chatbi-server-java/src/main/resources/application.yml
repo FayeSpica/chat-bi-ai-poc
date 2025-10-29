@@ -22,6 +22,10 @@ spring:
         dialect: org.hibernate.dialect.MariaDBDialect
         format_sql: true
 
+  sql:
+    init:
+      mode: always
+
 # LangChain4j Configuration
 langchain4j:
   ollama:
