@@ -4,6 +4,7 @@ import {
   DatabaseConnection, DatabaseConnectionCreate, DatabaseConnectionUpdate, DatabaseConnectionTest,
   TableInfo, TableSchema, CommentUpdate
 } from '../types';
+import { getLoginToken } from '../utils/cookie';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -18,7 +19,16 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    console.log('API Request:', config.method?.toUpperCase(), config.url);
+    // 从cookie中获取login_token并添加到请求头
+    const loginToken = getLoginToken();
+    if (loginToken) {
+      config.headers['login_token'] = loginToken;
+    } else {
+      // 即使为空也添加header
+      config.headers['login_token'] = '';
+    }
+    
+    console.log('API Request:', config.method?.toUpperCase(), config.url, 'login_token:', loginToken || '(empty)');
     return config;
   },
   (error) => {
