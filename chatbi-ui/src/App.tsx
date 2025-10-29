@@ -6,7 +6,8 @@ import ChatInput from './components/ChatInput';
 import DatabaseSchema from './components/DatabaseSchema';
 import DatabaseAdmin from './components/DatabaseAdmin';
 import DatabaseSelector from './components/DatabaseSelector';
-import { chatAPI, systemAPI, databaseAdminAPI } from './services/api';
+import AccessDenied from './components/AccessDenied';
+import { chatAPI, systemAPI, databaseAdminAPI, setAuthErrorHandler } from './services/api';
 import { ChatMessage as ChatMessageType, ChatRequest, ChatResponse, DatabaseConnection } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -24,6 +25,7 @@ const App: React.FC = () => {
   const [selectedDatabaseId, setSelectedDatabaseId] = useState<string | undefined>();
   const [availableConnections, setAvailableConnections] = useState<DatabaseConnection[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(true); // 默认折叠
+  const [accessDenied, setAccessDenied] = useState<{ show: boolean; status: 401 | 403 }>({ show: false, status: 403 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 检查系统状态
@@ -62,6 +64,13 @@ const App: React.FC = () => {
     // 触发数据库结构刷新
     setRefreshDatabaseSchema(prev => prev + 1);
   };
+
+  // 设置权限错误处理
+  useEffect(() => {
+    setAuthErrorHandler((status: 401 | 403) => {
+      setAccessDenied({ show: true, status });
+    });
+  }, []);
 
   useEffect(() => {
     checkSystemStatus();
@@ -274,6 +283,20 @@ const App: React.FC = () => {
     }
   };
 
+  // 如果显示权限错误页面，则直接返回
+  if (accessDenied.show) {
+    return (
+      <AccessDenied 
+        status={accessDenied.status}
+        onRetry={() => {
+          setAccessDenied({ show: false, status: 403 });
+          // 重新检查系统状态
+          checkSystemStatus();
+        }}
+      />
+    );
+  }
+
   return (
     <Layout className="chat-container">
       <Header style={{ 
@@ -285,7 +308,7 @@ const App: React.FC = () => {
         justifyContent: 'space-between'
       }}>
         <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1890ff' }}>
-          ChatBI - 智能聊天BI系统
+          智能问数
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <DatabaseSelector

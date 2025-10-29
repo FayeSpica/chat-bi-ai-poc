@@ -45,6 +45,13 @@ api.interceptors.request.use(
   }
 );
 
+// 权限错误处理函数（将在 App.tsx 中设置）
+let handleAuthError: ((status: 401 | 403) => void) | null = null;
+
+export const setAuthErrorHandler = (handler: (status: 401 | 403) => void) => {
+  handleAuthError = handler;
+};
+
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
@@ -53,6 +60,15 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Error:', error.response?.status, error.response?.data);
+    
+    // 处理 401/403 权限错误
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
+      if (handleAuthError) {
+        handleAuthError(status as 401 | 403);
+      }
+    }
+    
     return Promise.reject(error);
   }
 );
