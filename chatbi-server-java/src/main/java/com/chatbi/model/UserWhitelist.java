@@ -5,9 +5,7 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "user_whitelist", indexes = {
-        @Index(name = "idx_user_whitelist_user_id", columnList = "user_id"),
-        @Index(name = "idx_user_whitelist_user_name", columnList = "user_name"),
-        @Index(name = "idx_user_whitelist_token_value", columnList = "token_value")
+        @Index(name = "idx_user_whitelist_user_id", columnList = "user_id")
 })
 public class UserWhitelist {
 
@@ -18,11 +16,7 @@ public class UserWhitelist {
     @Column(name = "user_id", length = 191)
     private String userId;
 
-    @Column(name = "user_name", length = 191)
-    private String userName;
-
-    @Column(name = "token_value", length = 512)
-    private String tokenValue;
+    // Only userId is stored for whitelist identification
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = Boolean.TRUE;
@@ -44,11 +38,7 @@ public class UserWhitelist {
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
 
-    public String getUserName() { return userName; }
-    public void setUserName(String userName) { this.userName = userName; }
-
-    public String getTokenValue() { return tokenValue; }
-    public void setTokenValue(String tokenValue) { this.tokenValue = tokenValue; }
+    // userName and tokenValue are intentionally not stored
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean active) { isActive = active; }

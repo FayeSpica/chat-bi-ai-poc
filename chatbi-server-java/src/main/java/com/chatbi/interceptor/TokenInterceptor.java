@@ -101,7 +101,7 @@ public class TokenInterceptor implements HandlerInterceptor {
                 logger.warn("Forbidden: user not in whitelist for request: {} {}", request.getMethod(), request.getRequestURI());
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 response.setContentType("application/json;charset=UTF-8");
-                response.getWriter().write("{\"error\":\"用户不在白名单\",\"code\":403}");
+                response.getWriter().write("{\"error\":\"用户不在白名单（需提供userId）\",\"code\":403}");
                 return false;
             }
 

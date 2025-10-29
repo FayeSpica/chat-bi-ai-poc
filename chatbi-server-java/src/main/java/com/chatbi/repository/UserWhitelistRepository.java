@@ -8,8 +8,4 @@ import org.springframework.stereotype.Repository;
 public interface UserWhitelistRepository extends JpaRepository<UserWhitelist, Long> {
 
     boolean existsByUserIdAndIsActiveTrue(String userId);
-
-    boolean existsByUserNameAndIsActiveTrue(String userName);
-
-    boolean existsByTokenValueAndIsActiveTrue(String tokenValue);
 }
