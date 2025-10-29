@@ -29,7 +29,7 @@ spring:
 # LangChain4j Configuration
 langchain4j:
   ollama:
-    base-url: http://192.168.31.230:11434
+    base-url: http://192.168.31.149:11434
     model-name: qwen2.5:7b
     timeout: 120s
     temperature: 0.1

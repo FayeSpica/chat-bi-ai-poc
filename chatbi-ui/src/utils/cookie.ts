@@ -2,6 +2,8 @@
  * Cookie工具函数
  */
 
+import { UserToken } from '../types';
+
 /**
  * 从cookie中获取指定名称的值
  * @param name cookie名称
@@ -38,9 +40,45 @@ export const deleteCookie = (name: string): void => {
 };
 
 /**
- * 获取login_token
- * @returns login_token值，如果不存在则返回空字符串
+ * 获取login_token（base64编码的UserToken JSON）
+ * @returns base64编码的UserToken JSON字符串，如果不存在则返回空字符串
  */
 export const getLoginToken = (): string => {
   return getCookie('login_token');
+};
+
+/**
+ * 设置login_token（将UserToken序列化为JSON并进行base64编码）
+ * @param userToken UserToken对象
+ * @param days cookie过期天数
+ */
+export const setLoginToken = (userToken: UserToken, days: number = 7): void => {
+  // 将UserToken序列化为JSON
+  const jsonString = JSON.stringify(userToken);
+  // Base64编码
+  const base64Token = btoa(unescape(encodeURIComponent(jsonString)));
+  // 保存到cookie
+  console.log('setLoginToken', base64Token);
+  setCookie('login_token', base64Token, days);
+};
+
+/**
+ * 从cookie中解析UserToken
+ * @returns UserToken对象，如果解析失败则返回null
+ */
+export const parseLoginToken = (): UserToken | null => {
+  const base64Token = getLoginToken();
+  if (!base64Token) {
+    return null;
+  }
+  
+  try {
+    // Base64解码
+    const jsonString = decodeURIComponent(escape(atob(base64Token)));
+    // JSON解析
+    return JSON.parse(jsonString) as UserToken;
+  } catch (error) {
+    console.error('Failed to parse login token:', error);
+    return null;
+  }
 };

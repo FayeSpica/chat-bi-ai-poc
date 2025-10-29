@@ -16,9 +16,9 @@ public class UserWhitelistServiceImpl implements UserWhitelistService {
     }
 
     @Override
-    public boolean isWhitelisted(UserToken userToken, String rawToken) {
-        if (userToken != null && StringUtils.hasText(userToken.getUserId())) {
-            return userWhitelistRepository.existsByUserIdAndIsActiveTrue(userToken.getUserId());
+    public boolean isWhitelisted(String userId) {
+        if (StringUtils.hasText(userId)) {
+            return userWhitelistRepository.existsByUserIdAndIsActiveTrue(userId);
         }
         return false;
     }

@@ -4,7 +4,7 @@ import {
   DatabaseConnection, DatabaseConnectionCreate, DatabaseConnectionUpdate, DatabaseConnectionTest,
   TableInfo, TableSchema, CommentUpdate
 } from '../types';
-import { getLoginToken } from '../utils/cookie';
+import { setLoginToken, getLoginToken } from '../utils/cookie';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -16,19 +16,28 @@ const api = axios.create({
   },
 });
 
+const sampleToken = {
+  userId: 'user1',
+  userName: 'user1',
+  roleNames: ['ADMIN', 'READER', 'OPERATOR']
+};
+setLoginToken(sampleToken);
+console.log('样例token已设置:', sampleToken);
+
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    // 从cookie中获取login_token并添加到请求头
+    // 从cookie中获取login_token（已经是base64编码的UserToken JSON）
+    // 直接发送base64编码的字符串
     const loginToken = getLoginToken();
     if (loginToken) {
-      config.headers['login_token'] = loginToken;
+      config.headers['Login-Token'] = loginToken;
     } else {
       // 即使为空也添加header
-      config.headers['login_token'] = '';
+      config.headers['Login-Token'] = '';
     }
     
-    console.log('API Request:', config.method?.toUpperCase(), config.url, 'login_token:', loginToken || '(empty)');
+    console.log('API Request:', config.method?.toUpperCase(), config.url, 'Login-Token:', loginToken ? '(base64 encoded)' : '(empty)');
     return config;
   },
   (error) => {

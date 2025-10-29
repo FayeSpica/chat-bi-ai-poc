@@ -160,3 +160,9 @@ export interface CommentUpdate {
   column_name?: string;
   comment: string;
 }
+
+export interface UserToken {
+  userId?: string;
+  userName?: string;
+  roleNames?: string[];
+}
