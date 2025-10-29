@@ -2,6 +2,10 @@ package com.chatbi.interceptor;
 
 import com.chatbi.annotation.EnableAuth;
 import com.chatbi.exception.TokenValidationException;
+import com.chatbi.model.UserToken;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
@@ -28,6 +32,8 @@ public class TokenInterceptor implements HandlerInterceptor {
      */
     private static final String TOKEN_HEADER = "token";
     private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String REQUEST_ATTR_USER_TOKEN = "userToken";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     
     /**
      * 这里可以配置有效的token列表，实际应用中应该从数据库或配置中心获取
@@ -85,7 +91,14 @@ public class TokenInterceptor implements HandlerInterceptor {
             // 角色校验：当注解中配置了 roleNames 时，要求用户至少具备其中一个角色
             String[] requiredRoles = enableAuth.roleNames();
             if (requiredRoles != null && requiredRoles.length > 0) {
-                Set<String> userRoles = parseRolesFromToken(token);
+                // 优先解析JSON格式的token为UserToken
+                UserToken userToken = parseUserTokenFromJson(token);
+                if (userToken != null) {
+                    // 存入请求属性，供后续业务使用
+                    request.setAttribute(REQUEST_ATTR_USER_TOKEN, userToken);
+                }
+
+                Set<String> userRoles = userToken != null ? userToken.getRoleNames() : parseRolesFromToken(token);
                 boolean hasAnyRequiredRole = Arrays.stream(requiredRoles)
                         .filter(r -> r != null && !r.trim().isEmpty())
                         .map(String::trim)
@@ -174,6 +187,12 @@ public class TokenInterceptor implements HandlerInterceptor {
 
         String trimmed = token.trim();
 
+        // 若为JSON格式，尝试解析UserToken并返回其角色
+        if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+            UserToken userToken = parseUserTokenFromJson(trimmed);
+            return userToken == null ? Collections.emptySet() : userToken.getRoleNames();
+        }
+
         // 简易明文格式：roles:ADMIN,DBA
         if (trimmed.startsWith("roles:")) {
             String rolesPart = trimmed.substring("roles:".length());
@@ -198,5 +217,73 @@ public class TokenInterceptor implements HandlerInterceptor {
 
         // 默认无角色
         return Collections.emptySet();
+    }
+
+    /**
+     * 将JSON格式的token解析为UserToken对象。
+     * 兼容以下字段名：
+     * - userId / uid
+     * - userName / username / name
+     * - roleNames (数组或逗号分隔字符串) / roles
+     */
+    private UserToken parseUserTokenFromJson(String token) {
+        if (token == null) {
+            return null;
+        }
+        String trimmed = token.trim();
+        if (!(trimmed.startsWith("{") && trimmed.endsWith("}"))) {
+            return null;
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(trimmed);
+            UserToken userToken = new UserToken();
+
+            // userId
+            JsonNode userIdNode = firstNonNull(root, "userId", "uid", "id");
+            if (userIdNode != null && userIdNode.isTextual()) {
+                userToken.setUserId(userIdNode.asText());
+            }
+
+            // userName
+            JsonNode userNameNode = firstNonNull(root, "userName", "username", "name");
+            if (userNameNode != null && userNameNode.isTextual()) {
+                userToken.setUserName(userNameNode.asText());
+            }
+
+            // roles
+            Set<String> roles = new java.util.HashSet<>();
+            JsonNode rolesNode = firstNonNull(root, "roleNames", "roles", "authorities");
+            if (rolesNode != null) {
+                if (rolesNode.isArray()) {
+                    for (JsonNode n : rolesNode) {
+                        if (n != null && n.isTextual()) {
+                            String role = n.asText().trim();
+                            if (!role.isEmpty()) roles.add(role);
+                        }
+                    }
+                } else if (rolesNode.isTextual()) {
+                    String[] parts = rolesNode.asText().split(",");
+                    for (String p : parts) {
+                        String role = p == null ? null : p.trim();
+                        if (role != null && !role.isEmpty()) roles.add(role);
+                    }
+                }
+            }
+            userToken.setRoleNames(roles);
+
+            return userToken;
+        } catch (JsonProcessingException e) {
+            // 不是合法JSON，忽略
+            return null;
+        }
+    }
+
+    private JsonNode firstNonNull(JsonNode root, String... names) {
+        for (String name : names) {
+            JsonNode node = root.get(name);
+            if (node != null && !node.isNull()) return node;
+        }
+        return null;
     }
 }
