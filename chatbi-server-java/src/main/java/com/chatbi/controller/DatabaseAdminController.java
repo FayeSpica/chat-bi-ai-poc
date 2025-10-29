@@ -1,5 +1,6 @@
 package com.chatbi.controller;
 
+import com.chatbi.annotation.EnableAuth;
 import com.chatbi.model.*;
 import com.chatbi.service.DatabaseAdminService;
 import com.chatbi.service.DatabaseConnectionService;
@@ -17,6 +18,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/admin")
 @CrossOrigin(origins = "*")
+@EnableAuth  // 示例：整个Controller下的所有接口都需要token验证
 public class DatabaseAdminController {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseAdminController.class);
     
