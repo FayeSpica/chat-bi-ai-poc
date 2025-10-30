@@ -34,6 +34,12 @@ langchain4j:
     timeout: 120s
     temperature: 0.1
 
+# CORS Configuration
+allowed:
+  origins:
+    - http://localhost:3000
+    - http://127.0.0.1:3000
+
 # Logging
 logging:
   level:
